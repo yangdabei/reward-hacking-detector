@@ -8,6 +8,8 @@ import logging
 from typing import Any
 import random
 
+from src.config import AgentConfig
+
 logger = logging.getLogger(__name__)
 
 

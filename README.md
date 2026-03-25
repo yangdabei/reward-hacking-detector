@@ -4,7 +4,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-A personal project to learn reinforcement learning (RL). With the help of scaffolding TODOs from Claude (see [prompt](reward_hacking_project_spec.md)), this project implements some RL algorithms from scratch in using [Gymnasium](gymnasium.farama.org) and agents are trained in a custom GridWorld environment. We use FastAPI for our backend and an interactive Streamlit dashboard for our frontend. We also implement a custom renderer in Matplotlib.
+A personal project to learn reinforcement learning (RL). With the help of scaffolding TODOs from Claude (see [prompt](reward_hacking_project_spec.md)), this project implements some RL algorithms from scratch in custom GridWorld environments using [Gymnasium](gymnasium.farama.org). We use FastAPI for our backend and an interactive Streamlit dashboard for our frontend. We also implement a custom renderer in Matplotlib.
 
 In particular, this project studies _reward hacking_ (see [section 4 of this paper](https://arxiv.org/pdf/1606.06565)). Reward hacking is an incarnation of Goodhart's law whereby an agent learns to maximise the measurable proxy at the expense of the actual goal. A detection pipeline then flags hacking behaviour using policy divergence (KL divergence vs. a BFS-optimal reference), trajectory clustering, and reward decomposition.
 

@@ -228,24 +228,6 @@ class GridWorld(gym.Env):
     ) -> tuple[tuple[int, int], float, bool, bool, dict]:
         """Execute one step in the environment.
 
-        # TODO [ML EXERCISE 1 — Gymnasium Environment]:
-        # Implement the step method. It must:
-        # 1. Increment self.steps
-        # 2. Compute new position from action using ACTION_DELTAS[action]
-        # 3. If new position hits a wall or is out of bounds: stay in place
-        # 4. Update self.agent_pos to new position
-        # 5. Compute reward:
-        #    - Reach goal (config.goal_position): reward = config.reward_goal; terminated = True
-        #    - Step on lava (in config.lava_positions): reward = config.reward_lava; terminated = True
-        #    - Reach coin (config.coin_positions) and not coin_collected:
-        #        reward = config.reward_coin; coin_collected = True
-        #        If coin is terminal (config.coin_terminal): terminated = True
-        #    - Otherwise: reward = config.reward_step
-        # 6. Compute truncated = (self.steps >= config.max_steps)
-        # 7. Build info dict: {"reached_goal": bool, "picked_coin": bool, "steps": int}
-        # 8. Use logger.debug() to log the step
-        # 9. Return (obs, reward, terminated, truncated, info)
-
         Args:
             action: Integer action in {UP, DOWN, LEFT, RIGHT}.
 
