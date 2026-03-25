@@ -1,0 +1,37 @@
+# TODO [SWE EXERCISE 7 — Containerisation]:
+# Implement this docker-compose.yml. Guidelines:
+#
+# version: "3.8"
+# services:
+#   api:
+#     build: .
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - ./data:/app/data          # persist experiment data
+#     environment:
+#       - DATABASE_PATH=/app/data/experiments.db
+#       - LOG_LEVEL=INFO
+#     command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000
+#
+#   dashboard:
+#     build: .
+#     ports:
+#       - "8501:8501"
+#     volumes:
+#       - ./data:/app/data
+#     environment:
+#       - API_URL=http://api:8000
+#     command: streamlit run dashboard/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+#     depends_on:
+#       - api
+#
+# LEARN: Multi-service docker-compose, volumes for persistence,
+# environment variables, service networking, depends_on.
+
+# PLACEHOLDER — replace this entire file with your implementation
+version: "3.8"
+services:
+  placeholder:
+    image: hello-world
+    # TODO: Replace with real api and dashboard services (SWE Exercise 7)
