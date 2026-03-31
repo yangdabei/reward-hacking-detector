@@ -4,14 +4,14 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-A personal project to learn reinforcement learning (RL). With the help of scaffolding TODOs from Claude (see [prompt](reward_hacking_project_spec.md)), this project implements some RL algorithms from scratch in custom GridWorld environments using [Gymnasium](gymnasium.farama.org). We use FastAPI for our backend and an interactive Streamlit dashboard for our frontend. We also implement a custom renderer in Matplotlib.
+A personal project to learn reinforcement learning (RL). With the help of scaffolding TODOs from Claude (see [prompt](reward_hacking_project_spec.md) and [this post]() recounting my experiences), this project implements some RL algorithms from scratch in custom GridWorld environments using [Gymnasium](gymnasium.farama.org). We use FastAPI for our backend and an interactive Streamlit dashboard for our frontend. We also implement a custom renderer in Matplotlib.
 
 In particular, this project studies _reward hacking_ (see [section 4 of this paper](https://arxiv.org/pdf/1606.06565)). Reward hacking is an incarnation of Goodhart's law whereby an agent learns to maximise the measurable proxy at the expense of the actual goal. A detection pipeline then flags hacking behaviour using policy divergence (KL divergence vs. a BFS-optimal reference), trajectory clustering, and reward decomposition.
 
 > [GIF placeholder — add side-by-side navigation GIF here]
 > Left: agent with low proxy reward navigates directly to goal. Right: agent with high proxy reward loops to collect coins, ignoring the goal.
 
----
+<!-- ---
 
 ## Key Results
 
@@ -24,7 +24,7 @@ In particular, this project studies _reward hacking_ (see [section 4 of this pap
 | 1.0 | — | — |
 | 5.0 | — | — |
 
-At coin reward >= X, Y% of agents exhibit reward hacking as measured by the Proxy Reliance Score (PRS > 0.7 threshold).
+At coin reward >= X, Y% of agents exhibit reward hacking as measured by the Proxy Reliance Score (PRS > 0.7 threshold). -->
 
 ---
 
@@ -93,14 +93,14 @@ The phenomenon is not limited to toy examples. Real RL systems have learned to e
 
 For AI safety, reward hacking is not a curiosity — it is a core alignment problem. As AI systems become more capable, the gap between a flawed proxy and the true objective becomes exploitable in increasingly subtle and consequential ways. Understanding when and why reward hacking occurs, and building reliable detectors for it, is a necessary step toward scalable oversight of advanced AI systems. This project studies the phenomenon in a controlled, reproducible setting where the ground truth is known, building intuitions and tools that transfer to harder problems. -->
 
----
+<!-- ---
 
 ## Links
 
 - [Methodology Document](docs/METHODOLOGY.md) — experimental design, metric formulas, results tables
 - [Analysis Notebook](notebooks/analysis.ipynb) — plots and interpretation
 - [Dashboard](http://localhost:8501) — live after `streamlit run dashboard/streamlit_app.py`
-- [REST API Docs](http://localhost:8000/docs) — live after `uvicorn src.api.app:app --reload`
+- [REST API Docs](http://localhost:8000/docs) — live after `uvicorn src.api.app:app --reload` -->
 
 ---
 
