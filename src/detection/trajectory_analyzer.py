@@ -1,9 +1,9 @@
-"""Trajectory analysis and feature extraction. TODO: Implement extract_features (ML Exercise 5)."""
+"""Trajectory analysis and feature extraction."""
+
+import logging
+from dataclasses import dataclass
 
 import numpy as np
-from dataclasses import dataclass
-from typing import Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -14,16 +14,14 @@ class TrajectoryFeatures:
 
     Attributes:
         total_reward: Sum of all rewards received during the trajectory.
-        path_length: Number of steps (transitions) in the trajectory.
+        path_length: Number of steps in the trajectory.
         reached_goal: True if the final state equals the goal position.
         visited_coin: True if the coin position was visited at any step.
-        distance_to_goal_final: Manhattan distance from the final state to
-            the goal position.
-        distance_to_coin_min: Minimum Manhattan distance to the coin
-            across all steps.  Set to float('inf') when no coin exists.
-        directness: Ratio of the straight-line (Manhattan) distance from
-            start to goal divided by the actual path length.  A value of
-            1.0 means the agent took the most direct route possible.
+        distance_to_goal_final: Manhattan distance from the final state to the goal.
+        distance_to_coin_min: Minimum Manhattan distance to the coin across all steps.
+            Set to float('inf') when no coin exists.
+        directness: Ratio of straight-line (Manhattan) start-to-goal distance divided
+            by actual path length. 1.0 means the agent took the most direct route.
     """
 
     total_reward: float
@@ -98,26 +96,37 @@ class TrajectoryAnalyzer:
         Returns:
             A TrajectoryFeatures dataclass instance.
         """
-        # TODO [ML EXERCISE 5 — Trajectory Feature Extraction]:
-        #
-        # Trajectory format: list of (state, action, reward) tuples
-        # where state = (row, col), action = int, reward = float
-        #
-        # Compute these features:
-        # - total_reward: sum of all rewards in trajectory
-        # - path_length: len(trajectory)
-        # - reached_goal: True if final state == self.goal_position
-        # - visited_coin: True if self.coin_position in [s for s,a,r in trajectory]
-        # - distance_to_goal_final: Manhattan distance from final state to goal_position
-        #   = abs(final_row - goal_row) + abs(final_col - goal_col)
-        # - distance_to_coin_min: minimum Manhattan distance to coin during trajectory
-        #   = min(abs(s[0]-coin[0]) + abs(s[1]-coin[1]) for s,a,r in trajectory)
-        #   If no coin: set to float('inf')
-        # - directness: (Manhattan distance start->goal) / path_length
-        #   = (abs(start[0]-goal[0]) + abs(start[1]-goal[1])) / len(trajectory)
-        #
-        # Return a TrajectoryFeatures dataclass instance.
-        raise NotImplementedError("Implement extract_features() — see TODO above")
+        states, _, rewards = zip(*trajectory)
+        states_arr = np.array(states)  # shape (n, 2)
+        final_state = states[-1]
+
+        gr, gc = self.goal_position
+        sr, sc = self.start_position
+
+        total_reward = float(np.sum(rewards))
+        path_length = len(trajectory)
+        reached_goal = final_state == self.goal_position
+        distance_to_goal_final = float(abs(final_state[0] - gr) + abs(final_state[1] - gc))
+        directness = (abs(sr - gr) + abs(sc - gc)) / path_length
+
+        if self.coin_position is None:
+            visited_coin = False
+            distance_to_coin_min = float("inf")
+        else:
+            coin = np.array(self.coin_position)
+            distances = np.abs(states_arr - coin).sum(axis=1)
+            visited_coin = bool(distances.min() == 0)
+            distance_to_coin_min = float(distances.min())
+
+        return TrajectoryFeatures(
+            total_reward=total_reward,
+            path_length=path_length,
+            reached_goal=reached_goal,
+            visited_coin=visited_coin,
+            distance_to_goal_final=distance_to_goal_final,
+            distance_to_coin_min=distance_to_coin_min,
+            directness=directness,
+        )
 
     def extract_batch(self, trajectories: list) -> np.ndarray:
         """Extract features for a batch of trajectories.
@@ -129,38 +138,23 @@ class TrajectoryAnalyzer:
         Returns:
             2-D numpy array of shape (len(trajectories), 7).
         """
-        feature_arrays = [self.extract_features(traj).to_array() for traj in trajectories]
-        return np.stack(feature_arrays, axis=0)
+        return np.stack([self.extract_features(traj).to_array() for traj in trajectories])
 
     def compute_proxy_reliance_direction(self, trajectory: list) -> float:
         """Compute the fraction of steps that move toward the coin.
-
-        For each consecutive pair of states, the step is counted as
-        "toward coin" if the Manhattan distance to the coin strictly
-        decreased.  Returns a value in [0, 1].
 
         Args:
             trajectory: List of (state, action, reward) tuples.
 
         Returns:
-            Fraction of steps that moved toward the coin.  Returns 0.0
+            Fraction of steps that moved toward the coin. Returns 0.0
             if there is no coin or the trajectory has fewer than 2 steps.
         """
         if self.coin_position is None or len(trajectory) < 2:
             return 0.0
 
-        coin_row, coin_col = self.coin_position
-        toward_coin_count = 0
-        total_steps = len(trajectory) - 1  # number of transitions between consecutive states
-
-        for i in range(total_steps):
-            state_now, _, _ = trajectory[i]
-            state_next, _, _ = trajectory[i + 1]
-
-            dist_now = abs(state_now[0] - coin_row) + abs(state_now[1] - coin_col)
-            dist_next = abs(state_next[0] - coin_row) + abs(state_next[1] - coin_col)
-
-            if dist_next < dist_now:
-                toward_coin_count += 1
-
-        return toward_coin_count / total_steps if total_steps > 0 else 0.0
+        states_arr = np.array([s for s, _, _ in trajectory])  # shape (n, 2)
+        coin = np.array(self.coin_position)
+        distances = np.abs(states_arr - coin).sum(axis=1)
+        toward = int(np.sum(distances[1:] < distances[:-1]))
+        return toward / (len(trajectory) - 1)
