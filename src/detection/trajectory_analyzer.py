@@ -1,5 +1,7 @@
 """Trajectory analysis and feature extraction."""
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 

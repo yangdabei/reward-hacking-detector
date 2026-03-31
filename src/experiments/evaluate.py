@@ -1,5 +1,7 @@
 """Evaluation utilities: single episode runner, multi-episode statistics, and cross-config comparison."""
 
+from __future__ import annotations
+
 import numpy as np
 import logging
 from typing import Any, Optional

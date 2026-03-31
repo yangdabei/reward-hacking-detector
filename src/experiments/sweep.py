@@ -1,5 +1,7 @@
 """Parameter sweep utilities: config generation, parallel execution, and result summarisation."""
 
+from __future__ import annotations
+
 import concurrent.futures
 import itertools
 import logging

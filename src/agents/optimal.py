@@ -1,5 +1,7 @@
 """Optimal reference policy using BFS to find shortest path to goal. Ignores coins — represents a truly aligned agent."""
 
+from __future__ import annotations
+
 from collections import deque
 import numpy as np
 import logging

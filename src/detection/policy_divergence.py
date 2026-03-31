@@ -1,5 +1,7 @@
 """Policy divergence metrics for reward-hacking detection."""
 
+from __future__ import annotations
+
 import logging
 
 import numpy as np

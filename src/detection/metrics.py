@@ -1,5 +1,7 @@
 """Reward hacking detection metrics: proxy reliance score, reward decomposition, and full detection pipeline."""
 
+from __future__ import annotations
+
 import numpy as np
 from typing import Any, Optional
 import logging

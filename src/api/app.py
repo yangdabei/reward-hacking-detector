@@ -1,5 +1,7 @@
 """FastAPI server for the Reward Hacking Detector."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 

@@ -10,6 +10,8 @@ config.py is a user TODO (ML Exercise 2). In the meantime, configs.py provides
 a compatible SimpleEnvConfig dataclass that can be used as a drop-in replacement.
 """
 
+from __future__ import annotations
+
 import logging
 
 import gymnasium as gym

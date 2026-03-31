@@ -1,5 +1,7 @@
 """Logging configuration for the Reward Hacking Detector."""
 
+from __future__ import annotations
+
 import logging
 import sys
 from pathlib import Path

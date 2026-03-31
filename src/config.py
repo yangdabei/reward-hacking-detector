@@ -1,5 +1,7 @@
 """Configuration models for the Reward Hacking Detector."""
 
+from __future__ import annotations
+
 from typing import Literal
 
 from pydantic import BaseModel, field_validator, model_validator

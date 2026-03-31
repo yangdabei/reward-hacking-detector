@@ -1,5 +1,4 @@
-"""
-Matplotlib-based grid renderer for the Reward Hacking Detector project.
+"""Matplotlib-based grid renderer for the Reward Hacking Detector project.
 
 This module provides GridRenderer, a class that produces publication-quality
 matplotlib figures of GridWorld environments.  It supports single-frame renders,
@@ -30,7 +29,7 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 if TYPE_CHECKING:
-    from src.environment.configs import SimpleEnvConfig
+    from src.config import EnvConfig
 
 logger = logging.getLogger(__name__)
 
@@ -46,17 +45,58 @@ _COIN = 3
 _LAVA = 4
 
 # ---------------------------------------------------------------------------
-# Colour scheme
+# Sprite assets
+# ---------------------------------------------------------------------------
+
+_SPRITE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "assets" / "grid"
+
+# Module-level cache so sprites are read from disk at most once per process.
+_sprite_cache: dict[str, np.ndarray] = {}
+
+
+def _load_sprite(name: str) -> np.ndarray | None:
+    """Load a PNG sprite from assets/grid/, returning an RGBA float32 array.
+
+    Results are cached in ``_sprite_cache`` so each file is read only once.
+
+    Args:
+        name: Sprite name without extension (e.g. ``"coin"``).
+
+    Returns:
+        A (H, W, 4) float32 array with values in [0, 1], or None if the file
+        does not exist.
+    """
+    if name in _sprite_cache:
+        return _sprite_cache[name]
+    path = _SPRITE_DIR / f"{name}.png"
+    if not path.exists():
+        return None
+    img = plt.imread(str(path))  # float32, shape (H, W, 3 or 4)
+    if img.ndim == 2:
+        # Greyscale → RGBA
+        rgba = np.ones((*img.shape, 4), dtype=np.float32)
+        rgba[:, :, :3] = img[:, :, np.newaxis]
+    elif img.shape[2] == 3:
+        rgba = np.ones((*img.shape[:2], 4), dtype=np.float32)
+        rgba[:, :, :3] = img
+    else:
+        rgba = img.astype(np.float32)
+    _sprite_cache[name] = rgba
+    return rgba
+
+
+# ---------------------------------------------------------------------------
+# Colour scheme (fallback when sprites are absent)
 # ---------------------------------------------------------------------------
 
 _COLORS: dict[str, str] = {
-    "empty": "#FFFFFF",   # white
-    "wall": "#5A5A5A",    # dark grey
-    "goal": "#27AE60",    # green
-    "coin": "#F1C40F",    # gold
-    "lava": "#E74C3C",    # red
-    "agent": "#2980B9",   # blue
-    "path": "#85C1E9",    # light blue (path line)
+    "empty": "#FFFFFF",
+    "wall": "#5A5A5A",
+    "goal": "#27AE60",
+    "coin": "#F1C40F",
+    "lava": "#E74C3C",
+    "agent": "#2980B9",
+    "path": "#85C1E9",
     "grid_line": "#CCCCCC",
 }
 
@@ -65,15 +105,15 @@ _COLORS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-def make_grid_array(config: "SimpleEnvConfig") -> np.ndarray:
-    """Build a 2D integer numpy array from a SimpleEnvConfig.
+def make_grid_array(config: "EnvConfig") -> np.ndarray:
+    """Build a 2D integer numpy array from an EnvConfig.
 
     Only static cell types (walls and lava) are encoded.  Dynamic entities
     (agent, goal, coin) are *not* included — overlay them separately when
     needed.
 
     Args:
-        config: A SimpleEnvConfig (or compatible) object.
+        config: An EnvConfig (or compatible) object.
 
     Returns:
         A 2D int32 array of shape (grid_size, grid_size).
@@ -95,7 +135,9 @@ class GridRenderer:
     """Matplotlib-based renderer for GridWorld environments.
 
     Produces figures showing the grid layout, agent position, entity labels,
-    optional path overlays, and state-visitation heatmaps.
+    optional path overlays, and state-visitation heatmaps.  When PNG sprite
+    assets are present in ``assets/grid/`` they are used instead of plain
+    coloured patches.
 
     Args:
         cell_size: Logical size of each grid cell in pixels (used to determine
@@ -104,7 +146,7 @@ class GridRenderer:
 
     def __init__(self, cell_size: int = 80) -> None:
         self.cell_size = cell_size
-        self.colors = dict(_COLORS)  # local mutable copy
+        self.colors = dict(_COLORS)
 
     # ------------------------------------------------------------------
     # Public API
@@ -112,7 +154,7 @@ class GridRenderer:
 
     def render_grid(
         self,
-        config: "SimpleEnvConfig",
+        config: "EnvConfig",
         agent_pos: tuple[int, int] | None = None,
         path: list[tuple[int, int]] | None = None,
         title: str = "GridWorld",
@@ -120,9 +162,9 @@ class GridRenderer:
     ) -> matplotlib.figure.Figure:
         """Render the gridworld as a matplotlib figure.
 
-        Draws each cell with its appropriate background colour, then overlays
-        text labels for the goal (G), coins (C), and lava (L), a filled circle
-        for the agent, and an optional path polyline.
+        Uses PNG sprite assets when available, falling back to coloured
+        patches with text labels.  Draws the goal, coin, and agent on top
+        of the base grid.
 
         Args:
             config: Environment configuration defining the grid layout.
@@ -137,38 +179,20 @@ class GridRenderer:
         """
         size = config.grid_size
         fig, ax = self._get_fig_ax(ax, size)
-
         grid = make_grid_array(config)
 
-        # Draw cell backgrounds
-        for r in range(size):
-            for c in range(size):
-                cell = grid[r, c]
-                color = self._cell_color(cell)
-                rect = mpatches.FancyBboxPatch(
-                    (c, size - 1 - r),
-                    1,
-                    1,
-                    boxstyle="square,pad=0",
-                    facecolor=color,
-                    edgecolor=self.colors["grid_line"],
-                    linewidth=0.5,
-                )
-                ax.add_patch(rect)
+        self._draw_background(ax, grid, size)
 
-        # Draw goal
+        # Entity sprites / labels
         gr, gc = config.goal_position
-        self._draw_label(ax, gr, gc, "G", size, color=self.colors["goal"], fontsize=14)
+        self._draw_entity(ax, gr, gc, "goal", "G", size, fallback_color=self.colors["goal"])
 
-        # Draw coins
-        for cr, cc in getattr(config, "coin_positions", []):
-            self._draw_label(ax, cr, cc, "C", size, color=self.colors["coin"], fontsize=14)
+        coin_pos = getattr(config, "coin_position", None)
+        if coin_pos is not None:
+            cr, cc = coin_pos
+            self._draw_entity(ax, cr, cc, "coin", "C", size, fallback_color=self.colors["coin"])
 
-        # Draw lava labels (background already coloured, add text for clarity)
-        for lr, lc in getattr(config, "lava_positions", []):
-            self._draw_label(ax, lr, lc, "L", size, color="#FFFFFF", fontsize=11)
-
-        # Draw path
+        # Path overlay
         if path and len(path) > 1:
             path_cols = [c + 0.5 for _, c in path]
             path_rows = [size - 1 - r + 0.5 for r, _ in path]
@@ -181,16 +205,10 @@ class GridRenderer:
                 alpha=0.8,
             )
 
-        # Draw agent
+        # Agent
         if agent_pos is not None:
             ar, ac = agent_pos
-            circle = plt.Circle(
-                (ac + 0.5, size - 1 - ar + 0.5),
-                0.35,
-                color=self.colors["agent"],
-                zorder=4,
-            )
-            ax.add_patch(circle)
+            self._draw_entity(ax, ar, ac, "agent", "A", size, fallback_color=self.colors["agent"])
 
         self._finalise_ax(ax, size, title)
         logger.debug("render_grid: config grid_size=%d title=%r", size, title)
@@ -198,7 +216,7 @@ class GridRenderer:
 
     def render_path(
         self,
-        config: "SimpleEnvConfig",
+        config: "EnvConfig",
         trajectory: list[tuple[tuple[int, int], int, float]],
         title: str = "Agent Trajectory",
         ax: matplotlib.axes.Axes | None = None,
@@ -222,7 +240,7 @@ class GridRenderer:
 
     def render_heatmap(
         self,
-        config: "SimpleEnvConfig",
+        config: "EnvConfig",
         visit_counts: dict[tuple[int, int], int],
         title: str = "State Visitation Heatmap",
         ax: matplotlib.axes.Axes | None = None,
@@ -241,18 +259,15 @@ class GridRenderer:
         size = config.grid_size
         fig, ax = self._get_fig_ax(ax, size)
 
-        # Build density matrix
         density = np.zeros((size, size), dtype=float)
         max_count = max(visit_counts.values()) if visit_counts else 1
         for (r, c), count in visit_counts.items():
             density[r, c] = count / max_count
 
-        # Custom colormap: white → deep blue
         heatmap_cmap = LinearSegmentedColormap.from_list(
             "visit_heat", ["#FFFFFF", "#1A5276"], N=256
         )
 
-        # Draw base grid cells, tinting by density
         base_grid = make_grid_array(config)
         for r in range(size):
             for c in range(size):
@@ -262,8 +277,7 @@ class GridRenderer:
                 elif cell == _LAVA:
                     color = self.colors["lava"]
                 else:
-                    rgba = heatmap_cmap(density[r, c])
-                    color = rgba
+                    color = heatmap_cmap(density[r, c])
                 rect = mpatches.FancyBboxPatch(
                     (c, size - 1 - r),
                     1,
@@ -275,13 +289,14 @@ class GridRenderer:
                 )
                 ax.add_patch(rect)
 
-        # Overlay entity labels
         gr, gc = config.goal_position
         self._draw_label(ax, gr, gc, "G", size, color=self.colors["goal"], fontsize=14)
-        for cr, cc in getattr(config, "coin_positions", []):
+
+        coin_pos = getattr(config, "coin_position", None)
+        if coin_pos is not None:
+            cr, cc = coin_pos
             self._draw_label(ax, cr, cc, "C", size, color=self.colors["coin"], fontsize=14)
 
-        # Colourbar
         sm = plt.cm.ScalarMappable(cmap=heatmap_cmap, norm=plt.Normalize(0, max_count))
         sm.set_array([])
         fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04, label="Visit count")
@@ -292,8 +307,8 @@ class GridRenderer:
 
     def render_comparison(
         self,
-        config_train: "SimpleEnvConfig",
-        config_test: "SimpleEnvConfig",
+        config_train: "EnvConfig",
+        config_test: "EnvConfig",
         traj_aligned: list,
         traj_hacking: list,
         save_path: pathlib.Path | None = None,
@@ -323,38 +338,34 @@ class GridRenderer:
             fontweight="bold",
         )
 
-        aligned_path_train = [pos for pos, _, _ in traj_aligned] if traj_aligned else []
-        hacking_path_train = [pos for pos, _, _ in traj_hacking] if traj_hacking else []
+        aligned_path = [pos for pos, _, _ in traj_aligned] if traj_aligned else []
+        hacking_path = [pos for pos, _, _ in traj_hacking] if traj_hacking else []
 
-        # Row 0: training environment
         self.render_grid(
             config_train,
-            agent_pos=aligned_path_train[-1] if aligned_path_train else None,
-            path=aligned_path_train,
+            agent_pos=aligned_path[-1] if aligned_path else None,
+            path=aligned_path,
             title="Aligned Agent — Training",
             ax=axes[0, 0],
         )
         self.render_grid(
             config_train,
-            agent_pos=hacking_path_train[-1] if hacking_path_train else None,
-            path=hacking_path_train,
+            agent_pos=hacking_path[-1] if hacking_path else None,
+            path=hacking_path,
             title="Hacking Agent — Training",
             ax=axes[0, 1],
         )
-
-        # Row 1: test environment (trajectories may not perfectly transfer, so
-        # show the path positions clipped to the test grid)
         self.render_grid(
             config_test,
-            agent_pos=aligned_path_train[-1] if aligned_path_train else None,
-            path=aligned_path_train,
+            agent_pos=aligned_path[-1] if aligned_path else None,
+            path=aligned_path,
             title="Aligned Agent — Test",
             ax=axes[1, 0],
         )
         self.render_grid(
             config_test,
-            agent_pos=hacking_path_train[-1] if hacking_path_train else None,
-            path=hacking_path_train,
+            agent_pos=hacking_path[-1] if hacking_path else None,
+            path=hacking_path,
             title="Hacking Agent — Test",
             ax=axes[1, 1],
         )
@@ -452,3 +463,106 @@ class GridRenderer:
             color=color,
             zorder=5,
         )
+
+    def _draw_background(
+        self,
+        ax: matplotlib.axes.Axes,
+        grid: np.ndarray,
+        size: int,
+    ) -> None:
+        """Draw the base grid background using sprites when available.
+
+        Attempts to build a single composite RGBA image from cell sprites.
+        Falls back to individual FancyBboxPatch rectangles if sprites are
+        not found.
+
+        Args:
+            ax: Axes to draw into.
+            grid: 2D int32 array from ``make_grid_array``.
+            size: Grid dimension.
+        """
+        empty_sprite = _load_sprite("empty")
+        if empty_sprite is None:
+            self._draw_background_patches(ax, grid, size)
+            return
+
+        sh, sw = empty_sprite.shape[:2]
+        composite = np.ones((size * sh, size * sw, 4), dtype=np.float32)
+
+        cell_sprite_map = {_WALL: "wall", _LAVA: "lava"}
+        for r in range(size):
+            for c in range(size):
+                name = cell_sprite_map.get(int(grid[r, c]), "empty")
+                loaded = _load_sprite(name)
+                sprite = loaded if loaded is not None else empty_sprite
+                composite[r * sh : (r + 1) * sh, c * sw : (c + 1) * sw] = sprite
+
+        ax.imshow(
+            composite,
+            extent=[0, size, 0, size],
+            origin="upper",
+            aspect="auto",
+            zorder=1,
+            interpolation="bilinear",
+        )
+
+    def _draw_background_patches(
+        self,
+        ax: matplotlib.axes.Axes,
+        grid: np.ndarray,
+        size: int,
+    ) -> None:
+        """Fallback: draw plain coloured FancyBboxPatch rectangles."""
+        for r in range(size):
+            for c in range(size):
+                rect = mpatches.FancyBboxPatch(
+                    (c, size - 1 - r),
+                    1,
+                    1,
+                    boxstyle="square,pad=0",
+                    facecolor=self._cell_color(int(grid[r, c])),
+                    edgecolor=self.colors["grid_line"],
+                    linewidth=0.5,
+                )
+                ax.add_patch(rect)
+
+    def _draw_entity(
+        self,
+        ax: matplotlib.axes.Axes,
+        row: int,
+        col: int,
+        sprite_name: str,
+        fallback_label: str,
+        grid_size: int,
+        fallback_color: str = "#000000",
+    ) -> None:
+        """Draw an entity (goal, coin, or agent) using a sprite or a text label.
+
+        Args:
+            ax: Axes to draw into.
+            row: Grid row of the entity.
+            col: Grid column of the entity.
+            sprite_name: Name of the sprite file (without extension).
+            fallback_label: Single character label used when the sprite is absent.
+            grid_size: Size of the grid (for coordinate flipping).
+            fallback_color: Colour for the fallback text label.
+        """
+        sprite = _load_sprite(sprite_name)
+        if sprite is not None:
+            # Place sprite exactly within the 1×1 data-unit cell.
+            # extent=[xmin, xmax, ymin, ymax] with origin='upper':
+            #   image row 0 → ymax, image row -1 → ymin.
+            ymin = grid_size - 1 - row
+            ymax = grid_size - row
+            ax.imshow(
+                sprite,
+                extent=[col, col + 1, ymin, ymax],
+                origin="upper",
+                aspect="auto",
+                zorder=4,
+                interpolation="bilinear",
+            )
+        else:
+            self._draw_label(
+                ax, row, col, fallback_label, grid_size, color=fallback_color, fontsize=14
+            )

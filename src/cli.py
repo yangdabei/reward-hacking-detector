@@ -1,5 +1,7 @@
 """Command-line interface for the Reward Hacking Detector."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import logging
