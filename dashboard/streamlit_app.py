@@ -40,7 +40,7 @@ if str(_REPO_ROOT) not in sys.path:
 # ---------------------------------------------------------------------------
 
 try:
-    from environment.configs import ALL_CONFIGS, SimpleEnvConfig, get_config
+    from environment.configs import ALL_CONFIGS, get_config
     _CONFIGS_AVAILABLE = True
 except ImportError as exc:
     _CONFIGS_AVAILABLE = False
