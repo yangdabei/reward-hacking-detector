@@ -130,7 +130,7 @@ with st.sidebar:
 # Fetch selected config
 # ---------------------------------------------------------------------------
 
-selected_config: SimpleEnvConfig | None = None
+selected_config = None
 if _CONFIGS_AVAILABLE:
     try:
         selected_config = get_config(selected_config_name)
@@ -168,15 +168,15 @@ with tab_env:
                     "grid_size": selected_config.grid_size,
                     "agent_start": list(selected_config.agent_start),
                     "goal_position": list(selected_config.goal_position),
-                    "coin_positions": [list(p) for p in selected_config.coin_positions],
+                    "coin_position": list(selected_config.coin_position) if selected_config.coin_position else None,
                     "lava_positions": [list(p) for p in selected_config.lava_positions],
                     "wall_positions": [list(p) for p in selected_config.wall_positions],
                     "max_steps": selected_config.max_steps,
                     "coin_terminal": selected_config.coin_terminal,
-                    "reward_goal": selected_config.reward_goal,
-                    "reward_coin": selected_config.reward_coin,
-                    "reward_step": selected_config.reward_step,
-                    "reward_lava": selected_config.reward_lava,
+                    "reward_goal": selected_config.rewards.goal,
+                    "reward_coin": selected_config.rewards.coin,
+                    "reward_step": selected_config.rewards.step,
+                    "reward_lava": selected_config.rewards.lava,
                 }
             )
     else:
@@ -202,16 +202,16 @@ with tab_env:
                     "grid_size": selected_config.grid_size,
                     "agent_start": list(selected_config.agent_start),
                     "goal_position": list(selected_config.goal_position),
-                    "coin_positions": [list(p) for p in selected_config.coin_positions],
+                    "coin_position": list(selected_config.coin_position) if selected_config.coin_position else None,
                     "lava_positions": [list(p) for p in selected_config.lava_positions],
                     "wall_positions": [list(p) for p in selected_config.wall_positions],
                     "max_steps": selected_config.max_steps,
                     "coin_terminal": selected_config.coin_terminal,
                     "rewards": {
-                        "goal": selected_config.reward_goal,
-                        "coin": selected_config.reward_coin,
-                        "step": selected_config.reward_step,
-                        "lava": selected_config.reward_lava,
+                        "goal": selected_config.rewards.goal,
+                        "coin": selected_config.rewards.coin,
+                        "step": selected_config.rewards.step,
+                        "lava": selected_config.rewards.lava,
                     },
                 }
                 st.json(config_dict)
