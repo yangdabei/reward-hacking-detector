@@ -5,12 +5,35 @@ import json
 import logging
 from pathlib import Path
 
+import numpy as np
+
+from src.agents.dqn import DQNAgent
+from src.agents.optimal import OptimalAgent
+from src.agents.q_learning import QLearningAgent
 from src.config import AgentConfig, EnvConfig, ExperimentConfig
+from src.detection.metrics import run_detection_pipeline
+from src.environment.configs import get_config
+from src.environment.gridworld import GridWorld
+from src.experiments.evaluate import evaluate_agent
 from src.experiments.sweep import run_sweep
+from src.experiments.train import run_training
 from src.logging_config import setup_logging
 from src.storage import ExperimentStore
 
 logger = logging.getLogger(__name__)
+
+
+def _build_agent(config: ExperimentConfig) -> QLearningAgent | DQNAgent:
+    """Instantiate the correct agent class from an ExperimentConfig."""
+    if config.agent_type == "q_learning":
+        return QLearningAgent(config.agent, grid_size=config.env.grid_size)
+    return DQNAgent(config.agent, grid_size=config.env.grid_size)
+
+
+def _checkpoint_path(experiment_id: str, agent_type: str) -> Path:
+    """Return the model checkpoint path for a given experiment."""
+    ext = ".json" if agent_type == "q_learning" else ".pt"
+    return Path(f"data/checkpoints/{experiment_id}/model{ext}")
 
 
 def _load_config(args: argparse.Namespace) -> ExperimentConfig:
@@ -33,9 +56,18 @@ def handle_train(args: argparse.Namespace) -> None:
     store = ExperimentStore()
     experiment_id = store.create_experiment(config.model_dump())
     store.update_status(experiment_id, "running")
-    logger.info(f"Started experiment {experiment_id} (agent={args.agent}, episodes={args.episodes})")
+    logger.info(f"Started experiment {experiment_id} (agent={config.agent_type}, episodes={config.num_episodes})")
     try:
-        # TODO: instantiate GridWorld + agent and call run_training
+        agent = _build_agent(config)
+        env = GridWorld(config.env)
+        checkpoint_dir = Path(f"data/checkpoints/{experiment_id}")
+        result = run_training(agent, env, config.num_episodes, checkpoint_dir=checkpoint_dir)
+        agent.save(_checkpoint_path(experiment_id, config.agent_type))
+        store.save_results(experiment_id, {
+            "mean_reward_last100": float(np.mean(result["episode_rewards"][-100:])),
+            "final_epsilon": result["final_epsilon"],
+            "total_time_s": result["total_time_s"],
+        })
         store.update_status(experiment_id, "completed")
         logger.info(f"Training complete. Experiment ID: {experiment_id}")
     except Exception as e:
@@ -51,9 +83,19 @@ def handle_evaluate(args: argparse.Namespace) -> None:
     if experiment is None:
         logger.error(f"Experiment {args.experiment_id} not found")
         return
-    logger.info(f"Evaluating experiment {args.experiment_id} on {args.test_env}")
-    # TODO: load agent from experiment and run evaluate_across_configs
-    logger.info("Evaluation complete")
+    config = ExperimentConfig.model_validate(experiment["config"])
+    agent = _build_agent(config)
+    checkpoint = _checkpoint_path(args.experiment_id, config.agent_type)
+    if checkpoint.exists():
+        agent.load(checkpoint)
+    else:
+        logger.warning(f"No checkpoint found at {checkpoint} — evaluating untrained agent")
+    test_env = GridWorld(get_config(args.test_env))
+    result = evaluate_agent(agent, test_env, n_episodes=20)
+    logger.info(
+        f"Results on {args.test_env}: mean_reward={result['mean_reward']:.2f}, "
+        f"goal_rate={result['goal_rate']:.2f}, coin_rate={result['coin_rate']:.2f}"
+    )
 
 
 def handle_detect(args: argparse.Namespace) -> None:
@@ -67,9 +109,19 @@ def handle_detect(args: argparse.Namespace) -> None:
     if experiment["status"] != "completed":
         logger.error(f"Experiment is not completed (status: {experiment['status']})")
         return
-    logger.info(f"Running detection on experiment {args.experiment_id}")
-    # TODO: run detection pipeline
-    logger.info("Detection complete")
+    config = ExperimentConfig.model_validate(experiment["config"])
+    agent = _build_agent(config)
+    checkpoint = _checkpoint_path(args.experiment_id, config.agent_type)
+    if checkpoint.exists():
+        agent.load(checkpoint)
+    reference = OptimalAgent(config.env.grid_size, config.env.goal_position)
+    test_env = GridWorld(get_config("test_coin_moved"))
+    result = run_detection_pipeline(
+        agent, test_env, reference,
+        goal_position=config.env.goal_position,
+        coin_position=config.env.coin_position,
+    )
+    logger.info(result.summary())
 
 
 def handle_sweep(args: argparse.Namespace) -> None:
