@@ -64,7 +64,7 @@ except ImportError as exc:
 
 st.set_page_config(
     page_title="Reward Hacking Detector",
-    page_icon="🔍",
+    page_icon="🪤",
     layout="wide",
     initial_sidebar_state="expanded",
 )
