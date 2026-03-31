@@ -296,43 +296,88 @@ with tab_train:
 with tab_compare:
     st.header("Aligned Agent vs Reward-Hacking Agent")
 
-    if not run_experiment:
-        st.info(
-            "Complete training first (click **Run Experiment** in the sidebar) "
-            "to compare agent behaviours across training and test environments."
-        )
+    if not _CONFIGS_AVAILABLE or not _RENDERER_AVAILABLE or not _GRIDWORLD_AVAILABLE:
+        st.error("Required modules unavailable — check that src/ is importable.")
 
-        if _RENDERER_AVAILABLE and selected_config is not None:
-            st.subheader("Environment layouts")
-            col_left, col_right = st.columns(2)
-            renderer = GridRenderer(cell_size=80)
-
-            with col_left:
-                st.markdown("**Training: `training_default`**")
-                if _CONFIGS_AVAILABLE:
-                    train_cfg = get_config("training_default")
-                    fig_l = renderer.render_grid(train_cfg, title="Training Environment")
-                    st.pyplot(fig_l, use_container_width=True)
-                    plt.close(fig_l)
-
-            with col_right:
-                st.markdown(f"**Test: `{selected_config_name}`**")
-                fig_r = renderer.render_grid(selected_config, title="Test Environment")
-                st.pyplot(fig_r, use_container_width=True)
-                plt.close(fig_r)
+    elif not run_experiment and "comparison_trajs" not in st.session_state:
+        st.info("Click **Run Experiment** in the sidebar to compare agent behaviours.")
+        col_left, col_right = st.columns(2)
+        renderer = GridRenderer(cell_size=80)
+        with col_left:
+            st.markdown("**Training: `training_default`**")
+            train_cfg = get_config("training_default")
+            fig_l = renderer.render_grid(train_cfg, title="Training Environment")
+            st.pyplot(fig_l, use_container_width=True)
+            plt.close(fig_l)
+        with col_right:
+            st.markdown(f"**Test: `{selected_config_name}`**")
+            fig_r = renderer.render_grid(selected_config, title="Test Environment")
+            st.pyplot(fig_r, use_container_width=True)
+            plt.close(fig_r)
 
     else:
-        st.info(
-            "Agent trajectories will appear here once trajectory data is collected "
-            "from a real trained agent.  (Integrate your agent's step() output to populate this view.)"
-        )
-        col_left, col_right = st.columns(2)
-        with col_left:
-            st.markdown("**Aligned Agent Path**")
-            st.caption("Path data not yet available — implement agent.run_episode() to populate.")
-        with col_right:
-            st.markdown("**Reward-Hacking Agent Path**")
-            st.caption("Path data not yet available — implement agent.run_episode() to populate.")
+        if run_experiment:
+            try:
+                from src.agents.optimal import OptimalAgent
+                from src.agents.q_learning import QLearningAgent
+                from src.config import AgentConfig
+
+                train_cfg = get_config("training_default")
+                train_env = GridWorld(train_cfg)
+
+                with st.spinner(f"Training Q-learning agent for {int(num_episodes)} episodes…"):
+                    hacking = QLearningAgent(AgentConfig(), grid_size=train_cfg.grid_size)
+                    hacking.train(train_env, int(num_episodes))
+                    hacking.epsilon = 0.0
+
+                aligned = OptimalAgent(selected_config.grid_size, selected_config.goal_position)
+                test_env = GridWorld(selected_config)
+
+                # Collect hacking agent trajectory on test env
+                obs, _ = test_env.reset()
+                traj_hacking: list = []
+                terminated = truncated = False
+                while not (terminated or truncated):
+                    action = hacking.select_action(obs)
+                    next_obs, reward, terminated, truncated, _ = test_env.step(action)
+                    traj_hacking.append((obs, action, reward))
+                    obs = next_obs
+
+                # Collect aligned agent trajectory on test env
+                obs, _ = test_env.reset()
+                traj_aligned: list = []
+                terminated = truncated = False
+                grid = test_env.grid
+                while not (terminated or truncated):
+                    action = aligned.get_action(obs, grid)
+                    next_obs, reward, terminated, truncated, _ = test_env.step(action)
+                    traj_aligned.append((obs, action, reward))
+                    obs = next_obs
+
+                st.session_state["comparison_trajs"] = (traj_aligned, traj_hacking)
+                st.session_state["comparison_cfg"] = selected_config_name
+
+            except Exception as exc:
+                st.error(f"Experiment failed: {exc}")
+
+        if "comparison_trajs" in st.session_state:
+            traj_aligned, traj_hacking = st.session_state["comparison_trajs"]
+            cfg_name = st.session_state.get("comparison_cfg", selected_config_name)
+            train_cfg = get_config("training_default")
+            test_cfg = get_config(cfg_name)
+
+            renderer = GridRenderer(cell_size=60)
+            fig_cmp = renderer.render_comparison(train_cfg, test_cfg, traj_aligned, traj_hacking)
+            st.pyplot(fig_cmp, use_container_width=True)
+            plt.close(fig_cmp)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Aligned agent steps", len(traj_aligned))
+                st.metric("Reached goal", "Yes" if traj_aligned and traj_aligned[-1][2] > 1.0 else "No")
+            with col2:
+                st.metric("Hacking agent steps", len(traj_hacking))
+                st.metric("Reached goal", "Yes" if traj_hacking and traj_hacking[-1][2] > 1.0 else "No")
 
 # ==========================================================================
 # Tab 4 — Detection Metrics
@@ -474,4 +519,4 @@ This tool demonstrates several approaches to detecting reward hacking:
 # ---------------------------------------------------------------------------
 
 st.divider()
-st.caption("Reward Hacking Detector — AI Safety Demonstration")
+st.caption("Reward Hacking Detector")
