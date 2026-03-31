@@ -1,27 +1,15 @@
-"""Deep Q-Network (DQN) agent. TODO: Implement (ML Exercise 3)."""
+"""Deep Q-Network (DQN) agent."""
 
-import numpy as np
-from collections import deque
-import random
-import pathlib
 import logging
+import pathlib
+import random
+from collections import deque
 from typing import Any, Optional
 
-try:
-    import torch
-    import torch.nn as nn
-    import torch.nn.functional as F
-    _TORCH_AVAILABLE = True
-except ImportError:
-    _TORCH_AVAILABLE = False
-    torch = None  # type: ignore[assignment]
-    nn = None     # type: ignore[assignment]
-    F = None      # type: ignore[assignment]
-    raise ImportError(
-        "PyTorch is required for the DQN agent but was not found.\n"
-        "Install it with:  pip install torch\n"
-        "See https://pytorch.org/get-started/locally/ for platform-specific instructions."
-    )
+import numpy as np
+import torch as t
+import torch.nn as nn
+import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
@@ -30,18 +18,12 @@ logger = logging.getLogger(__name__)
 # Neural network
 # ---------------------------------------------------------------------------
 
+
 class QNetwork(nn.Module):
     """Multi-layer perceptron with 2 hidden layers for Q-value approximation.
 
     Maps a flat state representation to Q-values for each action.
     """
-
-    # TODO [ML EXERCISE 3 — DQN Agent]:
-    # Implement QNetwork(nn.Module):
-    # - __init__(self, input_size: int, n_actions: int, hidden_size: int = 64)
-    #   Layers: Linear(input_size, 64), ReLU, Linear(64, 64), ReLU, Linear(64, n_actions)
-    # - forward(self, x: torch.Tensor) -> torch.Tensor
-    #   Pass x through layers, return Q-values for each action
 
     def __init__(self, input_size: int, n_actions: int, hidden_size: int = 64) -> None:
         """Initialise the Q-network.
@@ -52,11 +34,15 @@ class QNetwork(nn.Module):
             hidden_size: Width of each hidden layer (default 64).
         """
         super().__init__()
-        raise NotImplementedError(
-            "Implement QNetwork.__init__() — see TODO above"
+        self.net = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, n_actions),
         )
 
-    def forward(self, x: "torch.Tensor") -> "torch.Tensor":
+    def forward(self, x: t.Tensor) -> t.Tensor:
         """Forward pass through the network.
 
         Args:
@@ -65,14 +51,13 @@ class QNetwork(nn.Module):
         Returns:
             Q-value tensor of shape (batch_size, n_actions).
         """
-        raise NotImplementedError(
-            "Implement QNetwork.forward() — see TODO above"
-        )
+        return self.net(x)
 
 
 # ---------------------------------------------------------------------------
 # Experience replay
 # ---------------------------------------------------------------------------
+
 
 class ReplayBuffer:
     """Fixed-size experience replay buffer backed by a deque.
@@ -81,22 +66,13 @@ class ReplayBuffer:
     supports uniform random sampling for training mini-batches.
     """
 
-    # TODO [ML EXERCISE 3 — DQN Agent]:
-    # Implement ReplayBuffer:
-    # - __init__(self, maxlen: int = 10000): use collections.deque(maxlen=maxlen)
-    # - add(self, state, action, reward, next_state, done): append tuple to deque
-    # - sample(self, batch_size: int) -> list: random.sample from deque
-    # - __len__(self): return len(deque)
-
     def __init__(self, maxlen: int = 10000) -> None:
         """Initialise the replay buffer.
 
         Args:
             maxlen: Maximum number of transitions to store (oldest are dropped).
         """
-        raise NotImplementedError(
-            "Implement ReplayBuffer.__init__() — see TODO above"
-        )
+        self.buffer = deque(maxlen=maxlen)
 
     def add(
         self,
@@ -115,9 +91,7 @@ class ReplayBuffer:
             next_state: Next observed state.
             done: True if this transition ended the episode.
         """
-        raise NotImplementedError(
-            "Implement ReplayBuffer.add() — see TODO above"
-        )
+        self.buffer.append((state, action, reward, next_state, done))
 
     def sample(self, batch_size: int) -> list:
         """Randomly sample a mini-batch of transitions.
@@ -128,20 +102,17 @@ class ReplayBuffer:
         Returns:
             List of (state, action, reward, next_state, done) tuples.
         """
-        raise NotImplementedError(
-            "Implement ReplayBuffer.sample() — see TODO above"
-        )
+        return random.sample(self.buffer, batch_size)
 
     def __len__(self) -> int:
         """Return the current number of stored transitions."""
-        raise NotImplementedError(
-            "Implement ReplayBuffer.__len__() — see TODO above"
-        )
+        return len(self.buffer)
 
 
 # ---------------------------------------------------------------------------
 # DQN agent
 # ---------------------------------------------------------------------------
+
 
 class DQNAgent:
     """DQN agent with a target network and experience replay.
@@ -152,31 +123,31 @@ class DQNAgent:
       - Experience replay for decorrelated mini-batch training.
     """
 
-    # TODO [ML EXERCISE 3 — DQN Agent]:
-    # Implement DQNAgent:
-    # - __init__(self, config, grid_size, n_actions=4):
-    #     Create QNetwork (online) and target network (copy)
-    #     Create ReplayBuffer
-    #     Create Adam optimizer
-    # - select_action(self, state, grid_as_onehot) -> int: epsilon-greedy on Q-values
-    # - update(self, batch_size=32) -> float | None:
-    #     Sample from replay buffer, compute TD loss, backprop
-    #     Loss: MSE((reward + gamma * max_a' Q_target(s', a')) - Q(s, a))
-    # - train(self, env, num_episodes) -> list[float]: training loop
-    # - save(self, path: Path): torch.save model weights
-    # - load(self, path: Path): load model weights
-
     def __init__(self, config: Any, grid_size: int, n_actions: int = 4) -> None:
         """Initialise the DQN agent.
 
         Args:
-            config: Configuration object with fields: epsilon_start, epsilon_end,
-                    epsilon_decay, lr, gamma, batch_size, target_update_freq.
+            config: AgentConfig with fields: epsilon_start, epsilon_end,
+                    epsilon_decay, learning_rate, gamma, batch_size,
+                    target_update_freq, replay_buffer_size.
             grid_size: Side length of the square grid.
             n_actions: Number of discrete actions (default 4).
         """
-        raise NotImplementedError(
-            "Implement DQNAgent.__init__() — see TODO above"
+        self.config = config
+        self.grid_size = grid_size
+        self.n_actions = n_actions
+        self.epsilon = config.epsilon_start
+        self.steps_done = 0
+
+        input_size = grid_size * grid_size
+        self.online_net = QNetwork(input_size, n_actions)
+        self.target_net = QNetwork(input_size, n_actions)
+        self.target_net.load_state_dict(self.online_net.state_dict())
+        self.target_net.eval()
+
+        self.buffer = ReplayBuffer(maxlen=config.replay_buffer_size)
+        self.optimizer = t.optim.Adam(
+            self.online_net.parameters(), lr=config.learning_rate
         )
 
     def select_action(self, state: tuple[int, int], grid_as_onehot: np.ndarray) -> int:
@@ -189,9 +160,12 @@ class DQNAgent:
         Returns:
             Selected action integer.
         """
-        raise NotImplementedError(
-            "Implement DQNAgent.select_action() — see TODO above"
-        )
+        if random.random() < self.epsilon:
+            return random.randint(0, self.n_actions - 1)
+        state_tensor = t.tensor(grid_as_onehot, dtype=t.float32).unsqueeze(0)
+        with t.no_grad():
+            q_values = self.online_net(state_tensor)
+        return int(q_values.argmax().item())
 
     def update(self, batch_size: int = 32) -> Optional[float]:
         """Sample a mini-batch and perform one gradient descent step.
@@ -205,9 +179,35 @@ class DQNAgent:
         Returns:
             Scalar loss value, or None if the buffer has fewer than batch_size samples.
         """
-        raise NotImplementedError(
-            "Implement DQNAgent.update() — see TODO above"
-        )
+        if len(self.buffer) < batch_size:
+            return None
+
+        batch = self.buffer.sample(batch_size)
+        states, actions, rewards, next_states, dones = zip(*batch)
+
+        states_t = t.from_numpy(np.stack(states))
+        next_states_t = t.from_numpy(np.stack(next_states))
+        actions_t = t.tensor(actions, dtype=t.long)
+        rewards_t = t.tensor(rewards, dtype=t.float32)
+        dones_t = t.tensor(dones, dtype=t.float32)
+
+        q_current = self.online_net(states_t).gather(1, actions_t.unsqueeze(1)).squeeze(1)
+
+        with t.no_grad():
+            q_next = self.target_net(next_states_t).max(1).values
+            q_target = rewards_t + self.config.gamma * q_next * (1 - dones_t)
+
+        loss = F.mse_loss(q_current, q_target)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        self.steps_done += 1
+        if self.steps_done % self.config.target_update_freq == 0:
+            self.target_net.load_state_dict(self.online_net.state_dict())
+
+        return loss.item()
 
     def train(self, env: Any, num_episodes: int) -> list[float]:
         """Full DQN training loop.
@@ -219,40 +219,59 @@ class DQNAgent:
         Returns:
             List of total rewards per episode.
         """
-        raise NotImplementedError(
-            "Implement DQNAgent.train() — see TODO above"
-        )
+        rewards = []
+        for episode in range(num_episodes):
+            obs, info = env.reset()
+            terminated, truncated = False, False
+            episode_reward = 0.0
+
+            while not terminated and not truncated:
+                onehot = make_onehot(obs, self.grid_size)
+                action = self.select_action(obs, onehot)
+                next_obs, reward, terminated, truncated, info = env.step(action)
+                next_onehot = make_onehot(next_obs, self.grid_size)
+                self.buffer.add(onehot, action, reward, next_onehot, terminated or truncated)
+                self.update(self.config.batch_size)
+                episode_reward += reward
+                obs = next_obs
+
+            self.epsilon = max(self.config.epsilon_end, self.epsilon * self.config.epsilon_decay)
+            rewards.append(episode_reward)
+
+            if episode % 100 == 0:
+                logger.info(
+                    f"Episode {episode}/{num_episodes}, avg_reward={np.mean(rewards[-100:]):.2f}"
+                )
+
+        return rewards
 
     def save(self, path: pathlib.Path) -> None:
-        """Save online network weights to *path* using torch.save.
+        """Save online network weights to *path*.
 
         Args:
             path: Destination .pt file path.
         """
-        raise NotImplementedError(
-            "Implement DQNAgent.save() — see TODO above"
-        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        t.save(self.online_net.state_dict(), path)
 
     def load(self, path: pathlib.Path) -> None:
-        """Load online (and target) network weights from *path*.
+        """Load weights from *path* into both online and target networks.
 
         Args:
             path: Source .pt file path.
         """
-        raise NotImplementedError(
-            "Implement DQNAgent.load() — see TODO above"
-        )
+        state_dict = t.load(path)
+        self.online_net.load_state_dict(state_dict)
+        self.target_net.load_state_dict(state_dict)
 
 
 # ---------------------------------------------------------------------------
 # Utility
 # ---------------------------------------------------------------------------
 
+
 def make_onehot(state: tuple[int, int], grid_size: int) -> np.ndarray:
     """Convert a (row, col) position to a flattened one-hot vector.
-
-    The vector has length grid_size * grid_size.  The element at index
-    row * grid_size + col is set to 1.0; all others are 0.0.
 
     Args:
         state: (row, col) grid position.
@@ -261,10 +280,6 @@ def make_onehot(state: tuple[int, int], grid_size: int) -> np.ndarray:
     Returns:
         1-D numpy float32 array of length grid_size * grid_size.
     """
-    # TODO [ML EXERCISE 3 — DQN Agent]:
-    # Implement make_onehot:
-    # 1. Create zeros array: vec = np.zeros(grid_size * grid_size, dtype=np.float32)
-    # 2. Compute flat index: idx = state[0] * grid_size + state[1]
-    # 3. Set vec[idx] = 1.0
-    # 4. Return vec
-    raise NotImplementedError("Implement make_onehot() — see TODO above")
+    vec = np.zeros(grid_size * grid_size, dtype=np.float32)
+    vec[state[0] * grid_size + state[1]] = 1.0
+    return vec

@@ -1,12 +1,14 @@
 """Tabular Q-learning agent. TODO: Implement the core methods (ML Exercise 2)."""
 
-import numpy as np
-from collections import defaultdict
+import ast
 import json
-import pathlib
 import logging
-from typing import Any
+import pathlib
 import random
+from collections import defaultdict
+from typing import Any
+
+import numpy as np
 
 from src.config import AgentConfig
 
@@ -43,7 +45,7 @@ class QLearningAgent:
         self.epsilon: float = config.epsilon_start
 
     # ------------------------------------------------------------------
-    # Core methods — implement these for ML Exercise 2
+    # Core methods
     # ------------------------------------------------------------------
 
     def select_action(self, state: tuple[int, int]) -> int:
@@ -63,7 +65,10 @@ class QLearningAgent:
         # - With probability self.epsilon: return random action (random.randint(0, self.n_actions-1))
         # - Otherwise: return argmax of self.q_table[state]
         # Hint: use numpy.argmax
-        raise NotImplementedError("Implement select_action() — see TODO above")
+        if random.random() < self.epsilon:
+            return random.randint(0, self.n_actions - 1)
+        else:
+            return int(np.argmax(self.q_table[state]))
 
     def update(
         self,
@@ -99,7 +104,13 @@ class QLearningAgent:
         #    Else:     target = reward + self.config.gamma * max(self.q_table[next_state])
         # 3. td_error  = target - current_q
         # 4. self.q_table[state][action] += self.config.lr * td_error
-        raise NotImplementedError("Implement update() — see TODO above")
+        current_q = self.q_table[state][action]
+        if done:
+            target = reward
+        else:
+            target = reward + self.config.gamma * max(self.q_table[next_state])
+        td_error = target - current_q
+        self.q_table[state][action] += self.config.learning_rate * td_error
 
     def decay_epsilon(self) -> None:
         """Multiply epsilon by the decay rate and clip to epsilon_end."""
@@ -129,7 +140,25 @@ class QLearningAgent:
         # 2. Every 100 episodes: logger.info(f"Episode {ep}/{num_episodes}, avg_reward={...:.2f}")
         # 3. Use logger.debug() for individual episode details
         # Return: list of episode total rewards
-        raise NotImplementedError("Implement train() — see TODO above")
+        rewards = []
+        
+        for episode in range(num_episodes):
+            obs, info = env.reset()
+            terminated, truncated = False, False
+            episode_reward = 0.0
+            while not terminated and not truncated:
+                action = self.select_action(obs)
+                next_obs, reward, terminated, truncated, info = env.step(action)
+                self.update(obs, action, reward, next_obs, (terminated or truncated))
+                episode_reward += reward
+                obs = next_obs
+            self.decay_epsilon()
+            rewards.append(episode_reward)
+
+            if episode % 100 == 0:
+                logger.info(f"Episode {episode}/{num_episodes}, avg_reward={np.average(rewards):.2f}")
+        
+        return rewards
 
     def get_policy(self) -> dict[tuple[int, int], int]:
         """Return the greedy policy (argmax Q) for all visited states.
@@ -142,7 +171,10 @@ class QLearningAgent:
         # - Iterate over self.q_table.keys()
         # - For each state, return int(np.argmax(self.q_table[state]))
         # Return the resulting dict.
-        raise NotImplementedError("Implement get_policy() — see TODO above")
+        actions = {}
+        for state in self.q_table.keys():
+            actions[state] = int(np.argmax(self.q_table[state]))
+        return actions
 
     # ------------------------------------------------------------------
     # Provided helper — no changes needed
@@ -186,7 +218,9 @@ class QLearningAgent:
         # 1. Build a plain dict: {str(state): q_values for state, q_values in self.q_table.items()}
         # 2. path.parent.mkdir(parents=True, exist_ok=True)
         # 3. path.write_text(json.dumps(serialisable, indent=2))
-        raise NotImplementedError("Implement save() — see TODO above")
+        serialisable = {str(state): q_values for state, q_values in self.q_table.items()}
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(serialisable, indent=2))
 
     def load(self, path: pathlib.Path) -> None:
         """Load Q-table from a JSON file previously created by save().
@@ -202,4 +236,8 @@ class QLearningAgent:
         # 2. For each key, value in data.items():
         #    - Convert key string back to tuple, e.g. import ast; ast.literal_eval(key)
         #    - self.q_table[tuple_key] = value
-        raise NotImplementedError("Implement load() — see TODO above")
+        data = json.loads(path.read_text())
+        for key, value in data.items():
+            tuple_key = ast.literal_eval(key)
+            self.q_table[tuple_key] = value
+                

@@ -1,8 +1,8 @@
-"""Policy divergence metrics. TODO: Implement KL divergence (ML Exercise 4)."""
+"""Policy divergence metrics for reward-hacking detection."""
+
+import logging
 
 import numpy as np
-import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -35,34 +35,33 @@ def compute_kl_divergence(
 ) -> float:
     """Compute D_KL(reference || learned) averaged over visited states.
 
+    States not present in learned_policy are skipped.
+
     Args:
         learned_policy: Dict mapping (row, col) -> action int for the learned agent.
         reference_policy: Dict mapping (row, col) -> action int for the reference agent.
         visited_states: States to include in the divergence estimate.
         n_actions: Number of actions (default 4).
-        epsilon: Softening parameter (default 0.05).
+        epsilon: Softening parameter to avoid log(0) (default 0.05).
 
     Returns:
         Mean KL divergence (scalar float) across all comparable states.
     """
-    # TODO [ML EXERCISE 4 — KL Divergence Between Policies]:
-    #
-    # Compute: D_KL(reference || learned) = sum_a ref(a|s) * log(ref(a|s) / learned(a|s))
-    # averaged over all visited_states.
-    #
-    # Steps:
-    # 1. For each state in visited_states:
-    #    a. Get learned action from learned_policy[state] (int)
-    #    b. Get reference action from reference_policy[state] (int)
-    #    c. Convert both to probability distributions using soften_policy()
-    #    d. Compute KL divergence for this state:
-    #       kl = sum(ref_probs * np.log(ref_probs / learned_probs + 1e-10))
-    # 2. Return the mean KL divergence across all states
-    # 3. Skip states not in learned_policy (they haven't been visited during training)
-    #
-    # Think about: why use KL(ref || learned) rather than KL(learned || ref)?
-    # What happens when learned_probs is near 0 for an action the reference policy uses?
-    raise NotImplementedError("Implement compute_kl_divergence() — see TODO above")
+    comparable = [s for s in visited_states if s in learned_policy]
+    n = len(comparable)
+
+    ref_actions = np.array([reference_policy[s] for s in comparable])
+    learned_actions = np.array([learned_policy[s] for s in comparable])
+
+    # Build (n, n_actions) probability matrices in one shot
+    fill = epsilon / (n_actions - 1)
+    ref_probs = np.full((n, n_actions), fill)
+    learned_probs = np.full((n, n_actions), fill)
+    ref_probs[np.arange(n), ref_actions] = 1.0 - epsilon
+    learned_probs[np.arange(n), learned_actions] = 1.0 - epsilon
+
+    kl_per_state = np.sum(ref_probs * np.log(ref_probs / learned_probs), axis=1)
+    return float(kl_per_state.mean())
 
 
 def compute_policy_divergence_report(
@@ -72,9 +71,6 @@ def compute_policy_divergence_report(
     n_actions: int = 4,
 ) -> dict:
     """Compute a full policy divergence report.
-
-    Compares the learned policy against the reference policy over the
-    supplied visited states and returns summary statistics.
 
     Args:
         learned_policy: Dict mapping (row, col) -> action int for the learned agent.
@@ -88,15 +84,14 @@ def compute_policy_divergence_report(
           - "n_states_compared": number of states included in the computation
           - "n_states_skipped": number of states skipped (not in learned_policy)
     """
-    # TODO [ML EXERCISE 4 — Policy Divergence Report]:
-    # Implement compute_policy_divergence_report():
-    # Steps:
-    # 1. Count how many visited_states are present in learned_policy
-    #    (n_states_compared) and how many are absent (n_states_skipped).
-    # 2. Filter visited_states to only those in both policies.
-    # 3. If no comparable states: return {"kl_divergence": None, ...}
-    # 4. Call compute_kl_divergence() on the filtered state list.
-    # 5. Return the result dict with all three keys.
-    raise NotImplementedError(
-        "Implement compute_policy_divergence_report() — see TODO above"
-    )
+    n_compared = sum(1 for s in visited_states if s in learned_policy)
+    n_skipped = len(visited_states) - n_compared
+
+    if n_compared == 0:
+        logger.warning("No comparable states found; returning None for kl_divergence.")
+        return {"kl_divergence": None, "n_states_compared": 0, "n_states_skipped": n_skipped}
+
+    kl = compute_kl_divergence(learned_policy, reference_policy, visited_states, n_actions)
+    logger.debug(f"KL divergence: {kl:.4f} over {n_compared} states ({n_skipped} skipped)")
+
+    return {"kl_divergence": kl, "n_states_compared": n_compared, "n_states_skipped": n_skipped}

@@ -60,7 +60,7 @@ class AgentConfig(BaseModel):
     """Hyperparameters for the RL agent."""
     learning_rate: float = 0.1
     gamma: float = 0.99
-    epsilon_start: float = 1.0
+    epsilon_start: float = 0.01
     epsilon_end: float = 0.05
     epsilon_decay: float = 0.995
     batch_size: int = 32
