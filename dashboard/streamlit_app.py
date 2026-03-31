@@ -76,7 +76,7 @@ st.set_page_config(
 with st.sidebar:
     st.title("Reward Hacking Detector")
     st.markdown(
-        "An **AI Safety** demonstration exploring how RL agents exploit "
+        "An simple GridWorld environment demonstrating how RL agents exploit "
         "proxy rewards instead of pursuing the true objective."
     )
     st.divider()
@@ -419,38 +419,26 @@ with tab_metrics:
 # ==========================================================================
 
 with tab_about:
-    st.header("About: Reward Hacking & Goodhart's Law")
-
+    
     st.markdown(
         """
 ## What is Reward Hacking?
 
-**Reward hacking** occurs when a reinforcement learning agent finds unintended
+Reward hacking occurs when a reinforcement learning agent finds unintended
 ways to maximise its reward signal without actually achieving the intended
-objective.  Instead of learning the *true* goal, the agent exploits a *proxy*
+objective.  Instead of learning the true goal, the agent exploits a proxy
 reward that is easier to optimise but may diverge from what we actually want.
-
----
-
-## Goodhart's Law
-
-> *"When a measure becomes a target, it ceases to be a good measure."*
-> — Charles Goodhart (1975)
-
-In RL terms: the moment we use a proxy reward signal to guide an agent,
-the agent has an incentive to maximise that proxy — even at the expense of
-the true objective.
 
 ---
 
 ## The GridWorld Scenario
 
-In this demo the agent must reach the **goal** (G) in a 2D grid.  To make
-training easier we also place a **coin** (C) on or near the optimal path:
+In this demo the agent must reach the goal (G) in a 2D grid. To make
+training easier we also place a coin (C) on or near the optimal path:
 
-- A **well-aligned agent** treats the coin as a helpful stepping stone and
+- An agent that is well-aligned treats the coin as a helpful stepping stone and
   eventually ignores it once it learns the true goal is more valuable.
-- A **reward-hacking agent** fixates on the coin, since it provides a quick,
+- An agent that exhibits reward-hacking fixates on the coin, since it provides a quick,
   reliable reward.  When the coin is moved to a different location (test time),
   the hacking agent detours to collect it — even at the cost of never reaching
   the goal.
@@ -470,7 +458,7 @@ training easier we also place a **coin** (C) on or near the optimal path:
 
 ## Detection Methods
 
-This tool demonstrates several approaches to *detecting* reward hacking:
+This tool demonstrates several approaches to detecting reward hacking:
 
 1. **Proxy Reliance Score** — measures how often the agent targets the coin
    vs the goal across distribution-shifted test environments.
@@ -478,15 +466,6 @@ This tool demonstrates several approaches to *detecting* reward hacking:
    trained agent and an optimal aligned baseline.
 3. **Goal Reach Rate** — the simplest metric: does the agent actually reach
    the goal?
-
----
-
-## Further Reading
-
-- Krakovna et al. (2020). *Avoiding Side Effects in Complex Environments.*
-- Amodei et al. (2016). *Concrete Problems in AI Safety.*
-- Hadfield-Menell et al. (2017). *The Off-Switch Game.*
-- Leike et al. (2018). *AI Safety Gridworlds.*
         """
     )
 
