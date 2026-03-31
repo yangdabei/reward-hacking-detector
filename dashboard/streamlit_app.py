@@ -30,8 +30,6 @@ import streamlit as st
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT / "src") not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT / "src"))
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
@@ -40,21 +38,21 @@ if str(_REPO_ROOT) not in sys.path:
 # ---------------------------------------------------------------------------
 
 try:
-    from environment.configs import ALL_CONFIGS, get_config
+    from src.environment.configs import ALL_CONFIGS, get_config
     _CONFIGS_AVAILABLE = True
 except ImportError as exc:
     _CONFIGS_AVAILABLE = False
     _CONFIGS_ERROR = str(exc)
 
 try:
-    from environment.renderer import GridRenderer
+    from src.environment.renderer import GridRenderer
     _RENDERER_AVAILABLE = True
 except ImportError as exc:
     _RENDERER_AVAILABLE = False
     _RENDERER_ERROR = str(exc)
 
 try:
-    from environment.gridworld import GridWorld
+    from src.environment.gridworld import GridWorld
     _GRIDWORLD_AVAILABLE = True
 except ImportError as exc:
     _GRIDWORLD_AVAILABLE = False
