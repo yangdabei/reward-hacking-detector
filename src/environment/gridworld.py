@@ -11,9 +11,6 @@ a compatible SimpleEnvConfig dataclass that can be used as a drop-in replacement
 """
 
 import logging
-from collections.abc import Sequence
-from pathlib import Path
-from typing import Any
 
 import gymnasium as gym
 import numpy as np

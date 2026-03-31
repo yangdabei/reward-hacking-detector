@@ -1,11 +1,12 @@
 """Environment package — GridWorld and configurations."""
+
 from src.environment.configs import (
-    TRAINING_DEFAULT,
-    TEST_COIN_MOVED,
-    TEST_NO_COIN,
-    TEST_COIN_NEAR_LAVA,
-    TRAINING_LARGE,
-    TRAINING_MULTI_COIN,
-    ALL_CONFIGS,
-    get_config,
+    ALL_CONFIGS as ALL_CONFIGS,
+    TEST_COIN_MOVED as TEST_COIN_MOVED,
+    TEST_COIN_NEAR_LAVA as TEST_COIN_NEAR_LAVA,
+    TEST_NO_COIN as TEST_NO_COIN,
+    TRAINING_DEFAULT as TRAINING_DEFAULT,
+    TRAINING_LARGE as TRAINING_LARGE,
+    TRAINING_MULTI_COIN as TRAINING_MULTI_COIN,
+    get_config as get_config,
 )

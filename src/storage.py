@@ -49,6 +49,17 @@ class ExperimentStore:
                 )
             """)
 
+    @staticmethod
+    def _row_to_dict(row: tuple) -> dict:
+        """Convert a raw DB row to an experiment dict."""
+        return {
+            "id": row[0],
+            "config": json.loads(row[1]),
+            "status": row[2],
+            "created_at": row[3],
+            "completed_at": row[4],
+        }
+
     def create_experiment(self, config: dict) -> str:
         """Create a new experiment record and return its ID."""
         experiment_id = str(uuid.uuid4())
@@ -64,7 +75,7 @@ class ExperimentStore:
         with sqlite3.connect(self.db_path) as conn:
             if status == "completed":
                 conn.execute(
-                    "UPDATE experiments SET status = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?",  # noqa: E501
+                    "UPDATE experiments SET status = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?",
                     (status, experiment_id),
                 )
             else:
@@ -76,17 +87,16 @@ class ExperimentStore:
     def save_results(self, experiment_id: str, metrics: dict[str, float]) -> None:
         """Save metric results for an experiment."""
         with sqlite3.connect(self.db_path) as conn:
-            for metric_name, metric_value in metrics.items():
-                conn.execute(
-                    "INSERT INTO results (experiment_id, metric_name, metric_value) VALUES (?, ?, ?)",  # noqa: E501
-                    (experiment_id, metric_name, metric_value),
-                )
+            conn.executemany(
+                "INSERT INTO results (experiment_id, metric_name, metric_value) VALUES (?, ?, ?)",
+                [(experiment_id, name, value) for name, value in metrics.items()],
+            )
 
     def save_trajectory(self, experiment_id: str, env_name: str, trajectory: list) -> None:
         """Save a trajectory for an experiment."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT INTO trajectories (experiment_id, env_config_name, trajectory) VALUES (?, ?, ?)",  # noqa: E501
+                "INSERT INTO trajectories (experiment_id, env_config_name, trajectory) VALUES (?, ?, ?)",
                 (experiment_id, env_name, json.dumps(trajectory)),
             )
 
@@ -94,18 +104,10 @@ class ExperimentStore:
         """Retrieve a single experiment by ID."""
         with sqlite3.connect(self.db_path) as conn:
             row = conn.execute(
-                "SELECT id, config, status, created_at, completed_at FROM experiments WHERE id = ?",  # noqa: E501
+                "SELECT id, config, status, created_at, completed_at FROM experiments WHERE id = ?",
                 (experiment_id,),
             ).fetchone()
-        if row is None:
-            return None
-        return {
-            "id": row[0],
-            "config": json.loads(row[1]),
-            "status": row[2],
-            "created_at": row[3],
-            "completed_at": row[4],
-        }
+        return self._row_to_dict(row) if row else None
 
     def list_experiments(self, status: str | None = None) -> list[dict]:
         """List all experiments, optionally filtered by status."""
@@ -116,16 +118,7 @@ class ExperimentStore:
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT id, config, status, created_at, completed_at FROM experiments WHERE status = ?",  # noqa: E501
+                    "SELECT id, config, status, created_at, completed_at FROM experiments WHERE status = ?",
                     (status,),
                 ).fetchall()
-        return [
-            {
-                "id": row[0],
-                "config": json.loads(row[1]),
-                "status": row[2],
-                "created_at": row[3],
-                "completed_at": row[4],
-            }
-            for row in rows
-        ]
+        return [self._row_to_dict(row) for row in rows]

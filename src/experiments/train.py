@@ -3,7 +3,6 @@
 import logging
 import pathlib
 import time
-import json
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)

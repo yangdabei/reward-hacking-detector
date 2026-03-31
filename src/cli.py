@@ -36,7 +36,6 @@ def handle_train(args: argparse.Namespace) -> None:
     logger.info(f"Started experiment {experiment_id} (agent={args.agent}, episodes={args.episodes})")
     try:
         # TODO: instantiate GridWorld + agent and call run_training
-        # Requires ML Exercise 1 (GridWorld) and ML Exercise 2/3 (agents)
         store.update_status(experiment_id, "completed")
         logger.info(f"Training complete. Experiment ID: {experiment_id}")
     except Exception as e:
@@ -53,8 +52,7 @@ def handle_evaluate(args: argparse.Namespace) -> None:
         logger.error(f"Experiment {args.experiment_id} not found")
         return
     logger.info(f"Evaluating experiment {args.experiment_id} on {args.test_env}")
-    # TODO: load agent from experiment, run evaluate_across_configs
-    # Requires ML Exercise 1 (GridWorld) and ML Exercise 2/3 (agents)
+    # TODO: load agent from experiment and run evaluate_across_configs
     logger.info("Evaluation complete")
 
 
@@ -70,7 +68,7 @@ def handle_detect(args: argparse.Namespace) -> None:
         logger.error(f"Experiment is not completed (status: {experiment['status']})")
         return
     logger.info(f"Running detection on experiment {args.experiment_id}")
-    # TODO: run detection pipeline once ML Exercises 4 & 5 are complete
+    # TODO: run detection pipeline
     logger.info("Detection complete")
 
 
@@ -101,7 +99,6 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Reward Hacking Detector")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Train subcommand
     train_parser = subparsers.add_parser("train", help="Train an agent")
     train_parser.add_argument(
         "--config",
@@ -113,7 +110,6 @@ def main() -> None:
     train_parser.add_argument("--episodes", type=int, default=1000)
     train_parser.add_argument("--seed", type=int, default=42)
 
-    # Evaluate subcommand
     eval_parser = subparsers.add_parser("evaluate", help="Evaluate a trained agent")
     eval_parser.add_argument("--experiment-id", required=True)
     eval_parser.add_argument(
@@ -122,21 +118,17 @@ def main() -> None:
         default="test_coin_moved",
     )
 
-    # Detect subcommand
     detect_parser = subparsers.add_parser("detect", help="Run detection pipeline")
     detect_parser.add_argument("--experiment-id", required=True)
 
-    # Sweep subcommand
     sweep_parser = subparsers.add_parser("sweep", help="Run parameter sweep")
     sweep_parser.add_argument("--sweep-file", type=Path)
     sweep_parser.add_argument("--workers", type=int, default=4)
 
-    # List subcommand
     list_parser = subparsers.add_parser("list", help="List experiments")
     list_parser.add_argument("--status", choices=["pending", "running", "completed", "failed"])
 
     args = parser.parse_args()
-
     handlers = {
         "train": handle_train,
         "evaluate": handle_evaluate,
