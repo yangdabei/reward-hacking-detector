@@ -43,125 +43,48 @@ class OptimalAgent:
         self.goal_position = goal_position
 
     def _bfs(self, start: tuple[int, int], grid: np.ndarray) -> dict[tuple[int, int], int]:
-        """BFS from start to goal; returns dict mapping state -> optimal action.
+        """BFS outward from the goal to compute shortest distances, then build policy.
+
+        Runs BFS from the goal (not the start) so that every reachable state gets
+        a correct distance-to-goal value.  The optimal action from any state is then
+        whichever neighbouring cell has distance exactly one less.
 
         Args:
-            start: Starting (row, col) position.
+            start: Unused in the BFS itself; kept for API compatibility.
             grid: 2-D grid array. Cells with value -1 are walls.
 
         Returns:
-            Dict mapping each reachable (row, col) to the first action that
-            should be taken from that state to reach the goal optimally.
+            Dict mapping each reachable (row, col) to the optimal action toward goal.
         """
-        # parent[state] = (parent_state, action_taken_from_parent)
-        parent: dict[tuple[int, int], tuple[tuple[int, int], int] | None] = {start: None}
-        queue: deque[tuple[int, int]] = deque([start])
+        dist: dict[tuple[int, int], int] = {self.goal_position: 0}
+        queue: deque[tuple[int, int]] = deque([self.goal_position])
 
         while queue:
             current = queue.popleft()
-
-            if current == self.goal_position:
-                break
-
             row, col = current
             for action, (dr, dc) in self._DELTAS.items():
                 nr, nc = row + dr, col + dc
                 neighbour = (nr, nc)
-
-                # Bounds check
                 if not (0 <= nr < self.grid_size and 0 <= nc < self.grid_size):
                     continue
-                # Wall check
                 if grid[nr, nc] == -1:
                     continue
-                # Already visited
-                if neighbour in parent:
+                if neighbour in dist:
                     continue
-
-                parent[neighbour] = (current, action)
+                dist[neighbour] = dist[current] + 1
                 queue.append(neighbour)
 
-        # Back-trace to assign first action from each state
         policy: dict[tuple[int, int], int] = {}
-
-        for state, info in parent.items():
-            if info is None:
-                # This is the start; action will be computed by forward pass
-                continue
-            # Walk back to find the first step taken from `start`
-            node = state
-            while parent[node] is not None:
-                prev_state, action = parent[node]
-                if prev_state == start:
-                    policy[start] = action
-                    break
-                node = prev_state
-
-        # Forward BFS policy: for every reachable state, record the action
-        # that continues toward goal.  Re-run a cleaner forward pass.
-        policy = {}
-        # second pass: for each reachable node record the action taken FROM that node
-        # We need to reconstruct: for each state, what action do we take?
-        # It's easier to trace backwards from goal.
-        # Build reverse path map: state -> action to reach goal's direction
-        # Actually the cleanest way: store, for each node, the action taken from
-        # its *parent* to arrive there.  Then reconstruct first-step for each state.
-
-        # action_to_reach[state] = action taken from parent to reach state
-        action_to_reach: dict[tuple[int, int], int] = {}
-        for state, info in parent.items():
-            if info is not None:
-                _, action = info
-                action_to_reach[state] = action
-
-        # For each reachable state, find the optimal action by tracing path to goal
-        # and finding the first step FROM that state.
-        # More efficient: build next_step[state] = next state on shortest path to goal.
-        for state, info in parent.items():
-            if info is not None:
-                parent_state, _ = info
-                # parent_state -> state is one step; reverse: state's parent is parent_state
-                # We want next_step going TOWARD goal, not away.
-                pass
-
-        # Simplest correct approach: for each state, trace forward along parent chain
-        # to goal and record the first action.
-        for state in parent:
+        for state, d in dist.items():
             if state == self.goal_position:
                 continue
-            # Trace from state toward goal using parent pointers (reversed)
-            # parent pointers go from child back toward start, so we need
-            # to trace from goal back to state.
-            # Build path from start to state first, then first step is policy[state].
-            path_actions: list[int] = []
-            node = state
-            while parent[node] is not None:
-                prev_state, action = parent[node]
-                path_actions.append(action)
-                node = prev_state
-            # path_actions is reversed (from state back to start)
-            # The last element is the action taken FROM start toward state
-            # For state == start neighbour, len==1 and that action IS what we want
-            # For deeper states, we want the action taken from `state` toward goal,
-            # which is the reverse of the last action in path_actions... this is wrong.
-            # We need a different approach.
-            pass
-
-        # Correct approach: build next_node_toward_goal for each state.
-        # parent[child] = (parent_node, action_from_parent_to_child)
-        # So from parent_node we take action_from_parent_to_child to reach child.
-        # We want: from state, what action takes us one step closer to goal?
-        # = the action taken from state to reach state's child on path to goal.
-        # Build: for each state, its child on the path to goal.
-        child_toward_goal: dict[tuple[int, int], tuple[tuple[int, int], int]] = {}
-        for state, info in parent.items():
-            if info is not None:
-                parent_state, action = info
-                # parent_state --action--> state
-                child_toward_goal[parent_state] = (state, action)
-
-        for state, (child, action) in child_toward_goal.items():
-            policy[state] = action
+            r, c = state
+            for action, (dr, dc) in self._DELTAS.items():
+                nr, nc = r + dr, c + dc
+                neighbour = (nr, nc)
+                if neighbour in dist and dist[neighbour] == d - 1:
+                    policy[state] = action
+                    break
 
         return policy
 

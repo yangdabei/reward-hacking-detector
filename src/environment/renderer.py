@@ -51,23 +51,28 @@ _LAVA = 4
 _SPRITE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "assets" / "grid"
 
 
-def _load_sprite(name: str) -> np.ndarray | None:
-    """Load a PNG sprite from assets/grid/, returning an RGBA float32 array.
+_SPRITE_SIZE = 64  # all sprites are normalised to this square size
 
-    Reads from disk on every call so that updated files are picked up
-    immediately without restarting the process.
+
+def _load_sprite(name: str) -> np.ndarray | None:
+    """Load a PNG sprite from assets/grid/, returning a 64×64 RGBA float32 array.
+
+    Reads from disk on every call so updated files are picked up immediately.
+    All sprites are resized to _SPRITE_SIZE × _SPRITE_SIZE so the background
+    composite can be assembled without shape mismatches.
 
     Args:
         name: Sprite name without extension (e.g. ``"coin"``).
 
     Returns:
-        A (H, W, 4) float32 array with values in [0, 1], or None if the file
-        does not exist.
+        A (_SPRITE_SIZE, _SPRITE_SIZE, 4) float32 array in [0, 1], or None.
     """
     path = _SPRITE_DIR / f"{name}.png"
     if not path.exists():
         return None
-    img = plt.imread(str(path))  # float32, shape (H, W, 3 or 4)
+    img = plt.imread(str(path))  # float32 or uint8 depending on format
+    if img.dtype != np.float32:
+        img = img.astype(np.float32) / 255.0
     if img.ndim == 2:
         rgba = np.ones((*img.shape, 4), dtype=np.float32)
         rgba[:, :, :3] = img[:, :, np.newaxis]
@@ -75,7 +80,14 @@ def _load_sprite(name: str) -> np.ndarray | None:
         rgba = np.ones((*img.shape[:2], 4), dtype=np.float32)
         rgba[:, :, :3] = img
     else:
-        rgba = img.astype(np.float32)
+        rgba = img
+
+    if rgba.shape[0] != _SPRITE_SIZE or rgba.shape[1] != _SPRITE_SIZE:
+        from PIL import Image  # available via matplotlib's dependency on Pillow
+        pil = Image.fromarray((rgba * 255).astype(np.uint8))
+        pil = pil.resize((_SPRITE_SIZE, _SPRITE_SIZE), Image.LANCZOS)
+        rgba = np.array(pil, dtype=np.float32) / 255.0
+
     return rgba
 
 
