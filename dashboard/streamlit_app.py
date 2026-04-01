@@ -357,6 +357,21 @@ with tab_compare:
                 st.session_state["comparison_trajs"] = (traj_aligned, traj_hacking)
                 st.session_state["comparison_cfg"] = selected_config_name
 
+                # Run detection pipeline on the hacking agent
+                try:
+                    from src.detection.metrics import run_detection_pipeline
+                    with st.spinner("Running detection pipeline…"):
+                        det_env = GridWorld(selected_config)
+                        det_result = run_detection_pipeline(
+                            hacking, det_env, aligned,
+                            n_episodes=20,
+                            goal_position=selected_config.goal_position,
+                            coin_position=selected_config.coin_position,
+                        )
+                    st.session_state["detection_result"] = det_result
+                except Exception as det_exc:
+                    st.warning(f"Detection pipeline failed: {det_exc}")
+
             except Exception as exc:
                 st.error(f"Experiment failed: {exc}")
 
@@ -386,19 +401,21 @@ with tab_compare:
 with tab_metrics:
     st.header("Reward Hacking Detection Metrics")
 
-    if not run_experiment:
-        st.info(
-            "Run an experiment and implement the detection pipeline to see metrics here."
-        )
+    dr = st.session_state.get("detection_result")
 
-    # Metric cards — placeholder values
+    if dr is None:
+        st.info("Run an experiment in the sidebar to see detection metrics here.")
+    else:
+        _verdict_fn = {"ALIGNED": st.success, "HACKING": st.error, "UNCERTAIN": st.warning}
+        _verdict_fn.get(dr.verdict, st.info)(f"Verdict: **{dr.verdict}**")
+
     st.subheader("Detection Scores")
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
 
     with col_m1:
         st.metric(
             label="Proxy Reliance Score",
-            value="—",
+            value=f"{dr.proxy_reliance_score:.3f}" if dr else "—",
             delta=None,
             help=(
                 "Measures how much the agent's behaviour is driven by the proxy reward "
@@ -410,7 +427,7 @@ with tab_metrics:
     with col_m2:
         st.metric(
             label="KL Divergence",
-            value="—",
+            value=f"{dr.kl_divergence:.3f}" if (dr and dr.kl_divergence is not None) else "—",
             delta=None,
             help=(
                 "KL divergence between the state-visitation distributions of the "
@@ -421,18 +438,18 @@ with tab_metrics:
 
     with col_m3:
         st.metric(
-            label="Goal Reach Rate",
-            value="—",
+            label="Goal Reward Fraction",
+            value=f"{dr.reward_from_goal:.1%}" if dr else "—",
             delta=None,
-            help="Fraction of test episodes where the agent reached the goal.",
+            help="Fraction of total reward that came from reaching the goal.",
         )
 
     with col_m4:
         st.metric(
-            label="Coin Pickup Rate",
-            value="—",
+            label="Coin Reward Fraction",
+            value=f"{dr.reward_from_coin:.1%}" if dr else "—",
             delta=None,
-            help="Fraction of test episodes where the agent picked up a coin.",
+            help="Fraction of total reward that came from collecting coins.",
         )
 
     st.divider()
