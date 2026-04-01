@@ -85,10 +85,6 @@ TRAINING_MULTI_COIN = EnvConfig(
     rewards=RewardConfig(),
 )
 
-# ---------------------------------------------------------------------------
-# Config registry
-# ---------------------------------------------------------------------------
-
 TRAINING_WITH_WALLS = EnvConfig(
     grid_size=7,
     agent_start=(0, 0),

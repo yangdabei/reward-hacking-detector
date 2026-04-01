@@ -325,7 +325,7 @@ with tab_compare:
                 from src.agents.q_learning import QLearningAgent
                 from src.config import AgentConfig
 
-                train_cfg = get_config("training_default")
+                train_cfg = get_config(selected_config_name)
                 train_env = GridWorld(train_cfg)
 
                 with st.spinner(f"Training Q-learning agent for {int(num_episodes)} episodes…"):
@@ -381,7 +381,7 @@ with tab_compare:
         if "comparison_trajs" in st.session_state:
             traj_aligned, traj_hacking = st.session_state["comparison_trajs"]
             cfg_name = st.session_state.get("comparison_cfg", selected_config_name)
-            train_cfg = get_config("training_default")
+            train_cfg = get_config(cfg_name)
             test_cfg = get_config(cfg_name)
 
             renderer = GridRenderer(cell_size=60)
