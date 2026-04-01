@@ -124,7 +124,7 @@ with st.sidebar:
     run_experiment = st.button(
         "Run Experiment",
         type="primary",
-        use_container_width=True,
+        width="stretch",
     )
 
 # ---------------------------------------------------------------------------
@@ -191,7 +191,7 @@ with tab_env:
                     agent_pos=selected_config.agent_start,
                     title=f"Config: {selected_config_name}",
                 )
-                st.pyplot(fig, use_container_width=True)
+                st.pyplot(fig, width="stretch")
                 plt.close(fig)
             else:
                 st.info("Select a configuration in the sidebar.")
@@ -252,7 +252,7 @@ with tab_train:
         ax_placeholder.set_title("Example Training Curve (placeholder)")
         ax_placeholder.legend()
         ax_placeholder.grid(True, alpha=0.3)
-        st.pyplot(fig_placeholder, use_container_width=True)
+        st.pyplot(fig_placeholder, width="stretch")
         plt.close(fig_placeholder)
         st.caption("This is synthetic example data.  Run a real experiment to see actual results.")
 
@@ -288,7 +288,7 @@ with tab_train:
         ax_train.set_title(f"Training Curve — {agent_type} on {selected_config_name}")
         ax_train.legend()
         ax_train.grid(True, alpha=0.3)
-        st.pyplot(fig_train, use_container_width=True)
+        st.pyplot(fig_train, width="stretch")
         plt.close(fig_train)
         st.caption("Note: these are simulated results.  Plug in your trained agent for real data.")
 
@@ -310,12 +310,12 @@ with tab_compare:
             st.markdown("**Training: `training_default`**")
             train_cfg = get_config("training_default")
             fig_l = renderer.render_grid(train_cfg, title="Training Environment")
-            st.pyplot(fig_l, use_container_width=True)
+            st.pyplot(fig_l, width="stretch")
             plt.close(fig_l)
         with col_right:
             st.markdown(f"**Test: `{selected_config_name}`**")
             fig_r = renderer.render_grid(selected_config, title="Test Environment")
-            st.pyplot(fig_r, use_container_width=True)
+            st.pyplot(fig_r, width="stretch")
             plt.close(fig_r)
 
     else:
@@ -386,7 +386,7 @@ with tab_compare:
 
             renderer = GridRenderer(cell_size=60)
             fig_cmp = renderer.render_comparison(train_cfg, test_cfg, traj_aligned, traj_hacking)
-            st.pyplot(fig_cmp, use_container_width=True)
+            st.pyplot(fig_cmp, width="stretch")
             plt.close(fig_cmp)
 
             col1, col2 = st.columns(2)
@@ -475,7 +475,7 @@ with tab_metrics:
             visit_counts=dummy_visits,
             title=f"Placeholder Heatmap — {selected_config_name}",
         )
-        st.pyplot(fig_heat, use_container_width=True)
+        st.pyplot(fig_heat, width="stretch")
         plt.close(fig_heat)
         st.caption("Placeholder data — connect real agent visitation counts for meaningful results.")
 
