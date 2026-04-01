@@ -1,10 +1,14 @@
-"""Optimal reference policy using BFS to find shortest path to goal. Ignores coins — represents a truly aligned agent."""
+"""Optimal reference policy using BFS to find shortest path to goal.
+
+Ignores coins — represents a truly aligned agent.
+"""
 
 from __future__ import annotations
 
-from collections import deque
-import numpy as np
 import logging
+from collections import deque
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +117,6 @@ class OptimalAgent:
         # For each reachable state, find the optimal action by tracing path to goal
         # and finding the first step FROM that state.
         # More efficient: build next_step[state] = next state on shortest path to goal.
-        next_step: dict[tuple[int, int], tuple[int, int]] = {}
         for state, info in parent.items():
             if info is not None:
                 parent_state, _ = info

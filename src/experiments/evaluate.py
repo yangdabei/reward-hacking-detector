@@ -1,10 +1,11 @@
-"""Evaluation utilities: single episode runner, multi-episode statistics, and cross-config comparison."""
+"""Evaluation utilities: single episode runner, multi-episode statistics, and cross-config comparison."""  # noqa: E501
 
 from __future__ import annotations
 
-import numpy as np
 import logging
-from typing import Any, Optional
+from typing import Any
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def run_episode(
     truncated = False
 
     # Build deterministic policy map if possible
-    policy_map: Optional[dict] = None
+    policy_map: dict | None = None
     if deterministic and hasattr(agent, "get_policy"):
         try:
             policy_map = agent.get_policy()
@@ -100,7 +101,7 @@ def evaluate_agent(
     trajectories: list[list] = []
 
     # Attempt to locate coin position from the environment
-    coin_position: Optional[tuple] = None
+    coin_position: tuple | None = None
     for attr in ("coin_position", "coin_pos", "_coin_position"):
         if hasattr(env, attr):
             coin_position = getattr(env, attr)

@@ -16,6 +16,7 @@ import logging
 
 import gymnasium as gym
 import numpy as np
+
 from src.config import EnvConfig
 
 # ---------------------------------------------------------------------------
@@ -270,7 +271,10 @@ class GridWorld(gym.Env):
         obs = self._get_obs()
         info = self._get_info()
 
-        self.logger.debug(f"Step {self.steps}: action={action}, pos={self.agent_pos}, reward={reward:.2f}")
+        self.logger.debug(
+            "Step %d: action=%s, pos=%s, reward=%.2f",
+            self.steps, action, self.agent_pos, reward,
+        )
 
         return obs, reward, terminated, truncated, info
 

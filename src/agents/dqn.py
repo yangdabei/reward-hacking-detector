@@ -6,7 +6,7 @@ import logging
 import pathlib
 import random
 from collections import deque
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import torch as t
@@ -169,7 +169,7 @@ class DQNAgent:
             q_values = self.online_net(state_tensor)
         return int(q_values.argmax().item())
 
-    def update(self, batch_size: int = 32) -> Optional[float]:
+    def update(self, batch_size: int = 32) -> float | None:
         """Sample a mini-batch and perform one gradient descent step.
 
         TD target: reward + gamma * max_a' Q_target(s', a')  (zero for terminal states)

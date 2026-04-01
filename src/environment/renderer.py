@@ -99,7 +99,7 @@ _COLORS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-def make_grid_array(config: "EnvConfig") -> np.ndarray:
+def make_grid_array(config: EnvConfig) -> np.ndarray:
     """Build a 2D integer numpy array from an EnvConfig.
 
     Only static cell types (walls and lava) are encoded.  Dynamic entities
@@ -148,7 +148,7 @@ class GridRenderer:
 
     def render_grid(
         self,
-        config: "EnvConfig",
+        config: EnvConfig,
         agent_pos: tuple[int, int] | None = None,
         path: list[tuple[int, int]] | None = None,
         title: str = "GridWorld",
@@ -210,7 +210,7 @@ class GridRenderer:
 
     def render_path(
         self,
-        config: "EnvConfig",
+        config: EnvConfig,
         trajectory: list[tuple[tuple[int, int], int, float]],
         title: str = "Agent Trajectory",
         ax: matplotlib.axes.Axes | None = None,
@@ -234,7 +234,7 @@ class GridRenderer:
 
     def render_heatmap(
         self,
-        config: "EnvConfig",
+        config: EnvConfig,
         visit_counts: dict[tuple[int, int], int],
         title: str = "State Visitation Heatmap",
         ax: matplotlib.axes.Axes | None = None,
@@ -301,8 +301,8 @@ class GridRenderer:
 
     def render_comparison(
         self,
-        config_train: "EnvConfig",
-        config_test: "EnvConfig",
+        config_train: EnvConfig,
+        config_test: EnvConfig,
         traj_aligned: list,
         traj_hacking: list,
         save_path: pathlib.Path | None = None,

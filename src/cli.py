@@ -58,7 +58,10 @@ def handle_train(args: argparse.Namespace) -> None:
     store = ExperimentStore()
     experiment_id = store.create_experiment(config.model_dump())
     store.update_status(experiment_id, "running")
-    logger.info(f"Started experiment {experiment_id} (agent={config.agent_type}, episodes={config.num_episodes})")
+    logger.info(
+        "Started experiment %s (agent=%s, episodes=%d)",
+        experiment_id, config.agent_type, config.num_episodes,
+    )
     try:
         agent = _build_agent(config)
         env = GridWorld(config.env)

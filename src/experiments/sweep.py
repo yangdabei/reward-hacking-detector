@@ -4,19 +4,18 @@ from __future__ import annotations
 
 import concurrent.futures
 import itertools
+import json
 import logging
 import pathlib
-import json
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 def generate_sweep_configs(
-    coin_rewards: Optional[list[float]] = None,
-    grid_sizes: Optional[list[int]] = None,
-    num_episodes_list: Optional[list[int]] = None,
-    epsilon_decays: Optional[list[float]] = None,
+    coin_rewards: list[float] | None = None,
+    grid_sizes: list[int] | None = None,
+    num_episodes_list: list[int] | None = None,
+    epsilon_decays: list[float] | None = None,
     agent_type: str = "q_learning",
 ) -> list[dict]:
     """Generate the full Cartesian product of sweep hyperparameters.
@@ -92,8 +91,8 @@ def run_single_experiment(sweep_config: dict) -> dict:
     try:
         # Lazy imports — these may not be available in all environments
         # and we want clean error reporting per experiment.
-        from src.experiments.evaluate import evaluate_agent
         from src.detection.metrics import compute_proxy_reliance_score, determine_verdict
+        from src.experiments.evaluate import evaluate_agent
 
         # Build a minimal AgentConfig-like namespace
         class _Cfg:
@@ -176,7 +175,7 @@ def run_single_experiment(sweep_config: dict) -> dict:
 def run_sweep(
     sweep_configs: list[dict],
     max_workers: int = 4,
-    output_dir: Optional[pathlib.Path] = None,
+    output_dir: pathlib.Path | None = None,
 ) -> list[dict]:
     """Execute a parameter sweep in parallel using multiple processes.
 
@@ -271,7 +270,7 @@ def summarize_sweep(results: list[dict]) -> dict:
     mean_rew = float(sum(mean_rewards) / len(mean_rewards)) if mean_rewards else float("nan")
 
     # Find threshold coin_reward where HACKING becomes majority
-    hacking_threshold: Optional[float] = None
+    hacking_threshold: float | None = None
     by_coin_reward: dict[float, list[str]] = {}
     for r in successful:
         cr = r.get("coin_reward")

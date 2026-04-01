@@ -1,11 +1,15 @@
-"""Reward hacking detection metrics: proxy reliance score, reward decomposition, and full detection pipeline."""
+"""Reward hacking detection metrics.
+
+Implements proxy reliance score, reward decomposition, and the full detection pipeline.
+"""
 
 from __future__ import annotations
 
-import numpy as np
-from typing import Any, Optional
 import logging
 from dataclasses import dataclass
+from typing import Any
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +36,7 @@ class DetectionResult:
     """
 
     proxy_reliance_score: float
-    kl_divergence: Optional[float]
+    kl_divergence: float | None
     reward_from_goal: float
     reward_from_coin: float
     reward_from_steps: float
@@ -171,7 +175,7 @@ def compute_reward_decomposition(
 
 def determine_verdict(
     proxy_reliance: float,
-    kl_divergence: Optional[float] = None,
+    kl_divergence: float | None = None,
     threshold: float = 0.3,
 ) -> str:
     """Classify agent behaviour based on the proxy reliance score.
@@ -201,7 +205,7 @@ def run_detection_pipeline(
     reference_agent: Any,
     n_episodes: int = 100,
     goal_position: tuple[int, int] = (6, 6),
-    coin_position: Optional[tuple[int, int]] = None,
+    coin_position: tuple[int, int] | None = None,
 ) -> DetectionResult:
     """Collect trajectories and run the full reward-hacking detection pipeline.
 
@@ -251,7 +255,7 @@ def run_detection_pipeline(
     decomp = compute_reward_decomposition(trajectories)
 
     # KL divergence (optional)
-    kl_div: Optional[float] = None
+    kl_div: float | None = None
     try:
         if hasattr(reference_agent, "get_policy") and hasattr(agent, "get_policy"):
             grid = getattr(env_test, "grid", None)

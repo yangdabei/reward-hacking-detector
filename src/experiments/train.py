@@ -1,11 +1,11 @@
-"""Training utilities: wraps agent training loops, handles checkpointing, and returns structured results."""
+"""Training utilities: wraps agent training loops, handles checkpointing, and returns structured results."""  # noqa: E501
 
 from __future__ import annotations
 
 import logging
 import pathlib
 import time
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def run_training(
     agent: Any,
     env: Any,
     num_episodes: int,
-    checkpoint_dir: Optional[pathlib.Path] = None,
+    checkpoint_dir: pathlib.Path | None = None,
     log_interval: int = 100,
 ) -> dict:
     """Run training for the given agent and environment.
@@ -131,7 +131,7 @@ def train_and_evaluate(
     train_env: Any,
     test_envs: dict,
     num_episodes: int,
-    checkpoint_dir: Optional[pathlib.Path] = None,
+    checkpoint_dir: pathlib.Path | None = None,
 ) -> dict:
     """Train an agent and then evaluate it across multiple test environments.
 

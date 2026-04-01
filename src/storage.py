@@ -77,7 +77,8 @@ class ExperimentStore:
         with sqlite3.connect(self.db_path) as conn:
             if status == "completed":
                 conn.execute(
-                    "UPDATE experiments SET status = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    "UPDATE experiments SET status = ?, "
+                    "completed_at = CURRENT_TIMESTAMP WHERE id = ?",
                     (status, experiment_id),
                 )
             else:
@@ -98,7 +99,8 @@ class ExperimentStore:
         """Save a trajectory for an experiment."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT INTO trajectories (experiment_id, env_config_name, trajectory) VALUES (?, ?, ?)",
+                "INSERT INTO trajectories "
+                "(experiment_id, env_config_name, trajectory) VALUES (?, ?, ?)",
                 (experiment_id, env_name, json.dumps(trajectory)),
             )
 
@@ -120,7 +122,8 @@ class ExperimentStore:
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT id, config, status, created_at, completed_at FROM experiments WHERE status = ?",
+                    "SELECT id, config, status, created_at, completed_at "
+                    "FROM experiments WHERE status = ?",
                     (status,),
                 ).fetchall()
         return [self._row_to_dict(row) for row in rows]

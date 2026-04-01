@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.config import AgentConfig, EnvConfig, RewardConfig
 from src.agents.q_learning import QLearningAgent
+from src.config import AgentConfig, EnvConfig, RewardConfig
 from src.environment.gridworld import GridWorld
 
 

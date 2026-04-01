@@ -3,8 +3,8 @@
 import pytest
 
 from src.config import EnvConfig, RewardConfig
-from src.environment.gridworld import GridWorld
 from src.environment.configs import TRAINING_DEFAULT
+from src.environment.gridworld import GridWorld
 
 
 @pytest.fixture
