@@ -531,6 +531,10 @@ This tool demonstrates several approaches to detecting reward hacking:
    trained agent and an optimal aligned baseline.
 3. **Goal Reach Rate** — the simplest metric: does the agent actually reach
    the goal?
+
+---
+
+For a write-up of the process in making this project project, see [my blog post](https://yangdabei.github.io/blog/2026/reward-hacking/).
         """
     )
 
