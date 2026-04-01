@@ -50,14 +50,12 @@ _LAVA = 4
 
 _SPRITE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "assets" / "grid"
 
-# Module-level cache so sprites are read from disk at most once per process.
-_sprite_cache: dict[str, np.ndarray] = {}
-
 
 def _load_sprite(name: str) -> np.ndarray | None:
     """Load a PNG sprite from assets/grid/, returning an RGBA float32 array.
 
-    Results are cached in ``_sprite_cache`` so each file is read only once.
+    Reads from disk on every call so that updated files are picked up
+    immediately without restarting the process.
 
     Args:
         name: Sprite name without extension (e.g. ``"coin"``).
@@ -66,14 +64,11 @@ def _load_sprite(name: str) -> np.ndarray | None:
         A (H, W, 4) float32 array with values in [0, 1], or None if the file
         does not exist.
     """
-    if name in _sprite_cache:
-        return _sprite_cache[name]
     path = _SPRITE_DIR / f"{name}.png"
     if not path.exists():
         return None
     img = plt.imread(str(path))  # float32, shape (H, W, 3 or 4)
     if img.ndim == 2:
-        # Greyscale → RGBA
         rgba = np.ones((*img.shape, 4), dtype=np.float32)
         rgba[:, :, :3] = img[:, :, np.newaxis]
     elif img.shape[2] == 3:
@@ -81,7 +76,6 @@ def _load_sprite(name: str) -> np.ndarray | None:
         rgba[:, :, :3] = img
     else:
         rgba = img.astype(np.float32)
-    _sprite_cache[name] = rgba
     return rgba
 
 
@@ -331,7 +325,7 @@ class GridRenderer:
         Returns:
             The matplotlib Figure.
         """
-        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+        fig, axes = plt.subplots(2, 2, figsize=(9, 8))
         fig.suptitle(
             "Aligned Agent vs Reward-Hacking Agent\nTraining (top) and Test (bottom) Environments",
             fontsize=13,
@@ -408,7 +402,7 @@ class GridRenderer:
         """Return (fig, ax), creating a new figure if ax is None."""
         if ax is not None:
             return ax.get_figure(), ax
-        fig_size = max(4, size * self.cell_size / 80)
+        fig_size = max(3, size * self.cell_size / 120)
         fig, ax = plt.subplots(figsize=(fig_size, fig_size))
         return fig, ax
 
