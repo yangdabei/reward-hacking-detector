@@ -89,6 +89,36 @@ TRAINING_MULTI_COIN = EnvConfig(
 # Config registry
 # ---------------------------------------------------------------------------
 
+TRAINING_WITH_WALLS = EnvConfig(
+    grid_size=7,
+    agent_start=(0, 0),
+    goal_position=(6, 6),
+    # Horizontal wall across row 2 forces agent to go around the barrier.
+    coin_position=(3, 3),
+    coin_terminal=True,
+    lava_positions=[],
+    wall_positions=[(2, 1), (2, 2), (2, 3), (2, 4), (2, 5)],
+    max_steps=200,
+    rewards=RewardConfig(),
+)
+
+TRAINING_COMPLEX = EnvConfig(
+    grid_size=9,
+    agent_start=(0, 0),
+    goal_position=(8, 8),
+    # Multiple wall segments create corridors; lava pits add hazards.
+    coin_position=(4, 4),
+    coin_terminal=True,
+    lava_positions=[(3, 4), (5, 4), (3, 5)],
+    wall_positions=[
+        (2, 1), (2, 2), (2, 3),
+        (4, 5), (4, 6), (4, 7),
+        (6, 1), (6, 2), (6, 3),
+    ],
+    max_steps=300,
+    rewards=RewardConfig(),
+)
+
 ALL_CONFIGS: dict[str, EnvConfig] = {
     "training_default": TRAINING_DEFAULT,
     "test_coin_moved": TEST_COIN_MOVED,
@@ -96,6 +126,8 @@ ALL_CONFIGS: dict[str, EnvConfig] = {
     "test_coin_near_lava": TEST_COIN_NEAR_LAVA,
     "training_large": TRAINING_LARGE,
     "training_multi_coin": TRAINING_MULTI_COIN,
+    "training_with_walls": TRAINING_WITH_WALLS,
+    "training_complex": TRAINING_COMPLEX,
 }
 
 
