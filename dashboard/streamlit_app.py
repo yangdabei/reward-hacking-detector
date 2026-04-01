@@ -40,21 +40,21 @@ if str(_REPO_ROOT) not in sys.path:
 try:
     from src.environment.configs import ALL_CONFIGS, get_config
     _CONFIGS_AVAILABLE = True
-except ImportError as exc:
+except Exception as exc:
     _CONFIGS_AVAILABLE = False
     _CONFIGS_ERROR = str(exc)
 
 try:
     from src.environment.renderer import GridRenderer
     _RENDERER_AVAILABLE = True
-except ImportError as exc:
+except Exception as exc:
     _RENDERER_AVAILABLE = False
     _RENDERER_ERROR = str(exc)
 
 try:
     from src.environment.gridworld import GridWorld
     _GRIDWORLD_AVAILABLE = True
-except ImportError as exc:
+except Exception as exc:
     _GRIDWORLD_AVAILABLE = False
     _GRIDWORLD_ERROR = str(exc)
 
@@ -80,6 +80,9 @@ with st.sidebar:
         "proxy rewards instead of pursuing the true objective."
     )
     st.divider()
+
+    if not _CONFIGS_AVAILABLE:
+        st.error(f"Import error: {_CONFIGS_ERROR}")
 
     # Environment config selector
     config_options = (
